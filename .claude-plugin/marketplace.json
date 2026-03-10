@@ -1,0 +1,40 @@
+{
+  "name": "deepgram-agent-skills",
+  "owner": {
+    "name": "Deepgram Developer Relations",
+    "email": "devrel@deepgram.com"
+  },
+  "metadata": {
+    "description": "Deepgram skills for AI coding tools",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "deepgram-api",
+      "description": "Full Deepgram API reference generated from OpenAPI and AsyncAPI specs, covering speech-to-text, text-to-speech, voice agents, audio intelligence, and account management",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/deepgram-api"
+      ]
+    },
+    {
+      "name": "deepgram-docs",
+      "description": "Find the right Deepgram documentation for any task, plus MCP server setup for querying docs directly from your AI coding tool",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/deepgram-docs"
+      ]
+    },
+    {
+      "name": "deepgram-starters",
+      "description": "Clone a ready-to-run Deepgram demo app in your language and start building — 13 frameworks across 7 features including transcription, text-to-speech, voice agents, and more",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/deepgram-starters"
+      ]
+    }
+  ]
+}
