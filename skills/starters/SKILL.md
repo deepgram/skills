@@ -1,5 +1,5 @@
 ---
-name: deepgram-starters
+name: starters
 description: >
   Clone a ready-to-run Deepgram demo app and start building on top of it. Use whenever someone
   wants a quick working demo, needs to prototype with Deepgram, or is starting a new project

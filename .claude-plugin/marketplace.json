@@ -10,30 +10,15 @@
   },
   "plugins": [
     {
-      "name": "deepgram-api",
-      "description": "Full Deepgram API reference generated from OpenAPI and AsyncAPI specs, covering speech-to-text, text-to-speech, voice agents, audio intelligence, and account management",
+      "name": "deepgram",
+      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, and MCP server setup",
       "source": "./",
       "strict": false,
       "skills": [
-        "./skills/deepgram-api"
-      ]
-    },
-    {
-      "name": "deepgram-docs",
-      "description": "Find the right Deepgram documentation for any task, plus MCP server setup for querying docs directly from your AI coding tool",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/deepgram-docs"
-      ]
-    },
-    {
-      "name": "deepgram-starters",
-      "description": "Clone a ready-to-run Deepgram demo app in your language and start building — 13 frameworks across 7 features including transcription, text-to-speech, voice agents, and more",
-      "source": "./",
-      "strict": false,
-      "skills": [
-        "./skills/deepgram-starters"
+        "./skills/api",
+        "./skills/docs",
+        "./skills/starters",
+        "./skills/mcp"
       ]
     }
   ]

@@ -1,5 +1,5 @@
 ---
-name: deepgram-api
+name: api
 description: >
   Deepgram API reference for speech-to-text, text-to-speech, voice agents, audio intelligence,
   and account management. Use whenever building with Deepgram APIs — REST or WebSocket. Covers

@@ -1,11 +1,10 @@
 ---
-name: deepgram-docs
+name: docs
 description: >
   Find the right Deepgram documentation for any task. Use whenever someone needs help locating
   docs, understanding which API to use, or wants to ask questions about Deepgram. Covers all
   product areas: speech-to-text, text-to-speech, voice agents, audio intelligence, and
-  self-hosted deployments. Also includes the Deepgram MCP server for querying docs directly
-  from AI coding tools.
+  self-hosted deployments.
 ---
 
 # Deepgram Documentation
@@ -56,13 +55,4 @@ Full reference for all Deepgram REST and WebSocket APIs.
 
 ## MCP Server
 
-Query Deepgram's documentation directly from your AI coding tool using the Kapa MCP server.
-
-- **Type:** HTTP
-- **URL:** `https://deepgram.mcp.kapa.ai`
-
-Or install via deepctl:
-
-```sh
-pipx run deepctl mcp
-```
+For direct documentation querying from your AI coding tool, use `/deepgram:mcp` to set up the Deepgram MCP server.

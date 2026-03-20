@@ -23,9 +23,10 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 
 | Skill | Description |
 |-------|-------------|
-| [deepgram-api](./skills/deepgram-api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
-| [deepgram-docs](./skills/deepgram-docs) | Find the right Deepgram documentation, plus MCP server setup for querying docs from your AI tool |
-| [deepgram-starters](./skills/deepgram-starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 7 features |
+| [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
+| [docs](./skills/docs) | Find the right Deepgram documentation for any task |
+| [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 7 features |
+| [mcp](./skills/mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
 
 # Try in Claude Code
 
@@ -35,13 +36,18 @@ You can register this repository as a Claude Code Plugin marketplace:
 /plugin marketplace add deepgram/skills
 ```
 
-Then browse and install individual plugins:
+Then install the Deepgram plugin:
 
 ```
-/plugin install deepgram-api@deepgram-agent-skills
-/plugin install deepgram-docs@deepgram-agent-skills
-/plugin install deepgram-starters@deepgram-agent-skills
+/plugin install deepgram@deepgram-agent-skills
 ```
+
+This gives you the following slash commands:
+
+- `/deepgram:api` — Deepgram API reference
+- `/deepgram:docs` — Find the right documentation
+- `/deepgram:starters` — Clone a starter app
+- `/deepgram:mcp` — Set up the Deepgram MCP server
 
 # Creating a Skill
 
@@ -73,5 +79,3 @@ bun run scripts/fetch-specs.ts https://dpgr.am/openapi.yml https://dpgr.am/async
 # Generate reference markdown
 bun install && bun run scripts/generate-skills.ts
 ```
-
-Or trigger the [Generate Skills workflow](./.github/workflows/fetch-specs.yml) from GitHub Actions.

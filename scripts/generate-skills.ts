@@ -3,7 +3,7 @@ import { join } from "path";
 import { parse } from "yaml";
 
 const SPECS_DIR = join(import.meta.dirname, "..", "specs");
-const REFS_DIR = join(import.meta.dirname, "..", "skills", "deepgram-api", "references");
+const REFS_DIR = join(import.meta.dirname, "..", "skills", "api", "references");
 
 // ---------------------------------------------------------------------------
 // $ref resolver
