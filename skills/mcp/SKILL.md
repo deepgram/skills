@@ -80,8 +80,13 @@ If the user's tool is not listed above, provide the MCP server details and let t
 
 ## Step 4: Confirm
 
-After installation, tell the user:
+After installation:
 
-> The Deepgram docs MCP server is now configured. Restart your AI coding tool to activate it. Once active, your tool can query Deepgram's full documentation directly — try asking it about API parameters, voice agents, or model capabilities.
+- **Claude Code** — run `/reload-plugins` to activate immediately, no restart needed.
+- **Cursor / Windsurf / Other** — the user may need to restart or reload their tool for the MCP server to become available.
+
+Then tell the user:
+
+> The Deepgram docs MCP server is now configured. Once active, your tool can query Deepgram's full documentation directly — try asking it about API parameters, voice agents, or model capabilities.
 
 Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/agentic-tools) for more details.
