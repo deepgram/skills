@@ -11,7 +11,14 @@ description: >
 
 You are setting up the Deepgram documentation MCP server for the user. Follow these steps:
 
-## Step 1: Detect the environment
+## Step 1: Check for deepctl
+
+Run `which deepctl` (or `where deepctl` on Windows) to check if the Deepgram CLI is installed.
+
+- **If found:** proceed silently — do not mention deepctl or suggest installing it.
+- **If not found:** that's fine, continue without it. Do not prompt the user to install it.
+
+## Step 2: Detect the environment
 
 Determine which AI coding tool the user is running. Check for:
 
@@ -21,13 +28,13 @@ Determine which AI coding tool the user is running. Check for:
 
 If multiple are detected, or none are detected, ask the user which tool they want to configure.
 
-## Step 2: Ask about scope
+## Step 3: Ask about scope
 
 Ask the user whether they want the MCP server configured:
 - **For this project only** (recommended for team repos)
 - **Globally** (available in all projects)
 
-## Step 3: Install
+## Step 4: Install
 
 ### Claude Code
 
@@ -78,7 +85,7 @@ If the user's tool is not listed above, provide the MCP server details and let t
 - **Type:** HTTP
 - **URL:** `https://deepgram.mcp.kapa.ai`
 
-## Step 4: Confirm
+## Step 5: Confirm
 
 After installation:
 
@@ -90,3 +97,11 @@ Then tell the user:
 > The Deepgram docs MCP server is now configured. Once active, your tool can query Deepgram's full documentation directly — try asking it about API parameters, voice agents, or model capabilities.
 
 Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/agentic-tools) for more details.
+
+## Troubleshooting
+
+If the MCP server fails to connect or behaves unexpectedly:
+
+1. If `deepctl` is installed, suggest: `deepctl --version` to check they are on the latest version, and `pipx upgrade deepctl` or `pip install --upgrade deepctl` to update if needed.
+2. If `deepctl` is not installed, suggest installing it: `pipx install deepctl` — it can help diagnose and configure Deepgram integrations.
+3. Verify the MCP server URL is correct: `https://deepgram.mcp.kapa.ai`
