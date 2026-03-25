@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-25
+
+### Changed
+
+- Renamed `mcp` skill to `setup-mcp` for clarity (`/deepgram:setup-mcp`)
+- MCP skill now silently checks for `deepctl` before setup — no install nagging
+- Added troubleshooting section that suggests checking `deepctl` version only when things go wrong
+
 ## [1.1.0] - 2026-03-20
 
 ### Changed
@@ -44,5 +52,6 @@ Or reinstall via `/plugin install deepgram@deepgram-agent-skills`.
 - Documentation navigator with MCP server setup
 - Starter app catalog covering 13 frameworks and 7 features
 
+[1.2.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.1.0...deepgram-skills-v1.2.0
 [1.1.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v0.0.1...deepgram-skills-v1.1.0
 [0.0.1]: https://github.com/deepgram/skills/releases/tag/deepgram-skills-v0.0.1
