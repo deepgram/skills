@@ -1,5 +1,5 @@
 ---
-name: mcp
+name: setup-mcp
 description: >
   Set up the Deepgram MCP server for querying Deepgram documentation directly from your AI
   coding tool. Detects the user's tool (Claude Code, Cursor, Windsurf, etc.) and runs the
