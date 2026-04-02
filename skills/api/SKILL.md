@@ -91,31 +91,27 @@ Analyze text or audio for insights?
 
 ### STT WebSocket (`/v1/listen`)
 
-3. **Wait for `{"type":"Ready"}` before sending audio.** Audio frames sent before the `Ready` message are silently dropped. Always wait for it.
+3. **Send KeepAlive as a text frame, not binary.** The connection closes after 10 seconds of no audio. Send `{"type":"KeepAlive"}` as a text (JSON) frame every 3–5 seconds during silence. Sending it as a binary frame causes transcription delays — the audio pipeline chokes — not a silent no-op.
 
-4. **Send KeepAlive as a text frame, not binary.** The connection closes after 10 seconds of no audio (NET-0001). Send `{"type":"KeepAlive"}` as a text frame every 3–5 seconds during silence. Sending it as a binary frame does nothing.
+4. **`encoding` must match the actual audio format.** If `encoding=linear16` but you're sending opus, you'll get a DATA-0000 error or garbled output. Omit `encoding` entirely when sending containerized formats (mp3, wav, ogg) — Deepgram detects them automatically.
 
-5. **Never send empty byte payloads.** Sending `b''` or a zero-length binary frame immediately disconnects the session (DATA-0000). Check packet length before sending.
-
-6. **`encoding` must match the actual audio format.** If `encoding=linear16` but you're sending opus, you'll get a DATA-0000 error or garbled output. Omit `encoding` entirely when sending containerized formats (mp3, wav, ogg) — Deepgram detects them automatically.
-
-7. **Timestamps reset on reconnect.** Each new WebSocket connection restarts timestamps at 00:00:00. For real-time apps, maintain a timestamp offset across reconnections or you'll silently corrupt your transcript timeline.
+5. **Timestamps reset on reconnect.** Each new WebSocket connection restarts timestamps at 00:00:00. For real-time apps, maintain a timestamp offset across reconnections or you'll silently corrupt your transcript timeline.
 
 ### TTS WebSocket (`/v1/speak`)
 
-8. **Don't send empty text.** A `Speak` message with an empty `text` field returns a 400 error. Always validate input before sending.
+6. **Don't send empty text.** A `Speak` message with an empty `text` field returns a 400 error. Always validate input before sending.
 
-9. **Character rate limiting (DATA-0001) means slow down, not retry.** If you hit this, reduce how fast you're submitting text chunks — don't immediately retry or you'll compound the problem.
+7. **Character rate limiting (DATA-0001) means slow down, not retry.** If you hit this, reduce how fast you're submitting text chunks — don't immediately retry or you'll compound the problem.
 
 ### Voice Agent (`/v1/agent/converse`)
 
-10. **Send the `Settings` message before any audio.** The agent ignores everything until it receives and acknowledges the Settings configuration. Message ordering is strictly required.
+8. **Send the `Settings` message before any audio.** The agent ignores everything until it receives and acknowledges the Settings configuration. Message ordering is strictly required.
 
 ### Flux model
 
-11. **Use `/v2/listen` and `model=flux-general-en`.** `/v1/listen` does not support Flux. `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
+9. **Use `/v2/listen` and `model=flux-general-en`.** `/v1/listen` does not support Flux. `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
 
-12. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
+10. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
     ```json
     { "type": "Configure", "thresholds": { "eot_threshold": "0.8", "eot_timeout_ms": "3000" }, "keyterms": ["Deepgram"] }
     ```
@@ -123,7 +119,7 @@ Analyze text or audio for insights?
 
 ### Authentication
 
-13. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
+11. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
 
 ## Documentation
 
