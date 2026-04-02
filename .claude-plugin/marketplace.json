@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Deepgram skills for AI coding tools",
-    "version": "1.2.3"
+    "version": "1.2.4"
   },
   "plugins": [
     {
