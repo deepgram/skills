@@ -85,7 +85,7 @@ Analyze text or audio for insights?
 
 ### All APIs
 
-1. **Feature flags are query params — except for Voice Agent.** For `/v1/listen`, `/v2/listen`, and `/v1/speak`, all options (`smart_format`, `punctuate`, `diarize`, `model`, `language`, etc.) go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). **Exception:** `/v1/agent/converse` has no URL query params at all — all configuration goes in the `Settings` JSON message. Also note that `/v2/listen` (Flux) supports a much smaller set of params than `/v1/listen` — flags like `smart_format`, `diarize`, and `punctuate` are not available.
+1. **Feature flags are query params — except for Voice Agent and Flux mid-session updates.** For `/v1/listen`, `/v2/listen`, and `/v1/speak`, initial options go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). Two exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); and `/v2/listen` supports a `Configure` message after connection to update EOT thresholds and keyterms mid-session. Also note that `/v2/listen` has a much smaller param set than `/v1/listen` — flags like `smart_format`, `diarize`, and `punctuate` are not available.
 
 2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further.
 
@@ -115,9 +115,15 @@ Analyze text or audio for insights?
 
 11. **Use `/v2/listen` and `model=flux-general-en`.** `/v1/listen` does not support Flux. `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
 
+12. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
+    ```json
+    { "type": "Configure", "thresholds": { "eot_threshold": "0.8", "eot_timeout_ms": "3000" }, "keyterms": ["Deepgram"] }
+    ```
+    The server responds with `ConfigureSuccess` (echoing back applied values) or `ConfigureFailure`. Omitted threshold fields keep their current values.
+
 ### Authentication
 
-12. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
+13. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
 
 ## Documentation
 
