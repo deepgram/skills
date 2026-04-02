@@ -26,11 +26,21 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
 | [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 7 features |
-| [mcp](./skills/mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
+| [setup-mcp](./skills/setup-mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
 
-# Try in Claude Code
+# Install
 
-You can register this repository as a Claude Code Plugin marketplace:
+## Any AI coding tool
+
+Works with Claude Code, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [30+ others](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills add deepgram/skills
+```
+
+## Claude Code (native plugin system)
+
+Register this repository as a plugin marketplace:
 
 ```
 /plugin marketplace add deepgram/skills
@@ -47,7 +57,7 @@ This gives you the following slash commands:
 - `/deepgram:api` — Deepgram API reference
 - `/deepgram:docs` — Find the right documentation
 - `/deepgram:starters` — Clone a starter app
-- `/deepgram:mcp` — Set up the Deepgram MCP server
+- `/deepgram:setup-mcp` — Set up the Deepgram MCP server
 
 # Creating a Skill
 
