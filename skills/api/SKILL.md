@@ -85,7 +85,7 @@ Analyze text or audio for insights?
 
 ### All APIs
 
-1. **Feature flags are query params, not body fields.** `smart_format`, `punctuate`, `diarize`, `model`, `language` and all other options go on the URL — not in the request body. The body is for audio data (REST) or audio frames (WebSocket).
+1. **Feature flags are query params — except for Voice Agent.** For `/v1/listen`, `/v2/listen`, and `/v1/speak`, all options (`smart_format`, `punctuate`, `diarize`, `model`, `language`, etc.) go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). **Exception:** `/v1/agent/converse` has no URL query params at all — all configuration goes in the `Settings` JSON message. Also note that `/v2/listen` (Flux) supports a much smaller set of params than `/v1/listen` — flags like `smart_format`, `diarize`, and `punctuate` are not available.
 
 2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further.
 
