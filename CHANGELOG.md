@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-04-02
+
+### Added
+
+- API skill: architecture diagram showing `api.deepgram.com` vs `agent.deepgram.com` split and how the Voice Agent pipeline orchestrates STT + LLM + TTS
+- API skill: decision tree for choosing the right API (REST vs WebSocket, STT vs TTS vs Voice Agent vs Read)
+- API skill: 13 common mistakes grouped by API surface, sourced from docs tips-and-tricks pages
+- API skill: Flux `Configure` message for mid-session EOT threshold and keyterm updates (live on API, not yet in public spec)
+
+### Fixed
+
+- API skill: clarified query params rule — Voice Agent has no URL params (all config via `Settings` message); Flux supports `Configure` for mid-session updates
+
+[1.2.2]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.2.1...deepgram-skills-v1.2.2
+
 ## [1.2.1] - 2026-04-02
 
 ### Added
