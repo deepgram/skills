@@ -15,13 +15,15 @@ Clone a working demo and start building. Every starter is a minimal, runnable ap
 
 What do you want to build?
 
-- **Transcribe a file** → `transcription` — send audio/video, get text back (REST)
-- **Transcribe a live stream** → `live-transcription` — real-time speech-to-text (WebSocket)
+- **Transcribe a file** → `transcription` — send audio/video, get text back (REST, Nova)
+- **Transcribe a live stream** → `live-transcription` — real-time speech-to-text (WebSocket, Nova)
 - **Generate speech** → `text-to-speech` — send text, get audio back (REST)
 - **Stream speech** → `live-text-to-speech` — real-time text-to-audio (WebSocket)
 - **Analyze text or audio** → `text-intelligence` — sentiment, topics, intents, summaries (REST)
-- **Build a voice agent** → `voice-agent` — conversational AI agent (WebSocket)
-- **Use Flux** → `flux` — Deepgram Flux (REST)
+- **Build a voice agent** → `voice-agent` — conversational AI agent (WebSocket, agent.deepgram.com)
+- **Conversational STT with turn detection** → `flux` — Deepgram Flux for voice agents and interactive assistants (WebSocket, `/v2/listen`)
+
+**Nova vs Flux for speech-to-text:** use `transcription` or `live-transcription` (Nova, `/v1/listen`) for general-purpose transcription, captions, and batch workloads. Use `flux` (Flux, `/v2/listen`) when you need built-in turn detection for conversational audio. See the `api` skill for a full comparison.
 
 ## 2. Pick Your Stack
 

@@ -19,9 +19,16 @@ Have a question? Get answers from Deepgram's AI assistant at <https://developers
 
 ### Speech-to-Text (STT)
 
-Transcribe audio and video into text — live streaming or pre-recorded.
+Transcribe audio and video into text. Deepgram ships two actively maintained, next-gen model families — pick the one that matches your use case.
 
-- [Getting Started](https://developers.deepgram.com/docs/stt/getting-started)
+- **Nova** (`/v1/listen`) — general-purpose transcription (captions, subtitles, batch files, live streams). Rich feature set including intelligence overlays (diarize, summarize, sentiment, topics, intents).
+- **Flux** (`/v2/listen`) — conversational-audio transcription for voice agents and interactive assistants. Built-in turn-taking (EOT events, mid-session reconfig).
+
+Docs:
+- [STT Getting Started (Nova)](https://developers.deepgram.com/docs/stt/getting-started)
+- [Flux Quickstart](https://developers.deepgram.com/docs/flux/quickstart)
+- [Nova 3 → Flux migration](https://developers.deepgram.com/docs/flux/nova-3-migration)
+- [Flux language prompting](https://developers.deepgram.com/docs/flux/language-prompting)
 
 ### Text-to-Speech (TTS)
 

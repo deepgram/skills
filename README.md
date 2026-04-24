@@ -11,6 +11,11 @@ For more information, check out:
 
 This repository contains skills for building with Deepgram's speech-to-text, text-to-speech, voice agent, and audio intelligence APIs. Skills are agent-agnostic — plain markdown that any AI coding tool can consume.
 
+Deepgram ships two actively maintained, industry-leading speech-to-text model families:
+
+- **Nova** (`/v1/listen`) — general-purpose transcription with a rich intelligence feature set (diarize, summarize, sentiment, topics, intents). Use for captions, subtitles, batch, and general live streaming.
+- **Flux** (`/v2/listen`, `model=flux-general-en`) — conversational STT with built-in turn detection. Use for voice agents and interactive assistants. See the `api` skill for the full Nova vs Flux decision guide.
+
 Some skills are hand-written, others are generated from Deepgram's [OpenAPI](https://dpgr.am/openapi.yml) and [AsyncAPI](https://dpgr.am/asyncapi.yml) specs.
 
 ## Skills

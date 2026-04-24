@@ -42,11 +42,13 @@ recipes/{language}/{product}/{version}/{recipe}/
 
 | Product | Recipe examples |
 |---|---|
-| Speech-to-Text (v1) | transcribe-url, transcribe-file, paragraphs, diarize, smart-format, utterances, summarize, sentiment, topics, intents, detect-entities, detect-language, redact, search, keywords, streaming |
-| Speech-to-Text (v2 / Flux) | streaming transcription with conversational turn detection |
+| Speech-to-Text — Nova (`/v1/listen`) | transcribe-url, transcribe-file, paragraphs, diarize, smart-format, utterances, summarize, sentiment, topics, intents, detect-entities, detect-language, redact, search, keywords, streaming |
+| Speech-to-Text — Flux (`/v2/listen`) | streaming conversational transcription, EOT / eager-EOT, mid-session `Configure`, keyterms |
 | Text-to-Speech | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding |
 | Audio Intelligence | summarize, sentiment, topics, intents, entities |
 | Voice Agents | connect, custom-llm, custom-tts, function-calling |
+
+Nova is the general-purpose STT family; Flux is designed for conversational audio and voice agents. Both are actively maintained — see the `api` skill's "Nova vs Flux" section for the decision guide.
 
 ## Languages
 
