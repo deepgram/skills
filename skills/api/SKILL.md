@@ -161,7 +161,7 @@ Migrating from Nova 3 to Flux? See the official [Nova 3 → Flux migration guide
 
 ## SDK-Specific Skills
 
-This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills (`using-speech-to-text`, `using-text-to-speech`, `using-text-intelligence`, `using-audio-intelligence`, `using-voice-agent`, `using-conversational-stt`, `using-management-api`) and a maintainer skill.
+This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills named `deepgram-{lang}-{product}` (e.g. `deepgram-python-speech-to-text`, `deepgram-js-voice-agent`) plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. The `deepgram-{lang}-` prefix avoids collisions when you install skills from multiple SDKs.
 
 ```bash
 # Install all skills from a specific SDK
@@ -175,8 +175,9 @@ npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 
-# Or install a specific product skill from one SDK
-npx skills add deepgram/deepgram-python-sdk --skill using-speech-to-text
+# Or install a specific product skill from one SDK (note the deepgram-{lang}- prefix)
+npx skills add deepgram/deepgram-python-sdk --skill deepgram-python-speech-to-text
+npx skills add deepgram/deepgram-js-sdk     --skill deepgram-js-voice-agent
 ```
 
 ## Related Deepgram skills

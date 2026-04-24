@@ -51,7 +51,18 @@ npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 ```
 
-Each SDK ships 7 product skills (`using-speech-to-text`, `using-text-to-speech`, `using-text-intelligence`, `using-audio-intelligence`, `using-voice-agent`, `using-conversational-stt`, `using-management-api`) plus a maintainer skill.
+Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. Example names for the Python SDK:
+
+- `deepgram-python-speech-to-text`
+- `deepgram-python-text-to-speech`
+- `deepgram-python-text-intelligence`
+- `deepgram-python-audio-intelligence`
+- `deepgram-python-voice-agent`
+- `deepgram-python-conversational-stt`
+- `deepgram-python-management-api`
+- `deepgram-python-maintaining-sdk`
+
+The `deepgram-{lang}-` prefix keeps names globally unique so installing skills from multiple SDKs never overwrites another SDK's skills.
 
 This `deepgram/skills` repo covers product contracts (API reference, docs, starters, recipes, integrations, MCP). The SDK repos cover language-specific usage.
 
