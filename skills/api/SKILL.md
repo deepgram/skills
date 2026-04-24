@@ -31,11 +31,11 @@ Base servers:
                    │       api.deepgram.com        │
                    └──────────────────────────────┘
                                 │
-         ┌──────────────────────┼──────────────────────┐
-         ▼                      ▼                      ▼
-    /v1/listen              /v1/speak              /v1/read
-  (audio → text)          (text → audio)        (intelligence)
-  REST or WebSocket        REST or WebSocket       REST only
+  ┌──────────────┬──────────────┼──────────────┬──────────────┐
+  ▼              ▼              ▼              ▼              ▼
+/v1/listen   /v2/listen     /v1/speak      /v1/read    /v1/projects/*
+ Nova — ASR   Flux — conv.   TTS            Text AI     Management
+REST or WSS   WSS only       REST or WSS    REST only   REST only
 
                    ┌──────────────────────────────┐
                    │      agent.deepgram.com       │
@@ -51,28 +51,64 @@ Base servers:
 ## Which API Should I Use?
 
 ```
-Audio → text?
-├─ Pre-recorded file    →  REST  POST /v1/listen
-└─ Live stream          →  WebSocket wss://api.deepgram.com/v1/listen
+Audio → text (transcription)?
+├─ General-purpose transcription (captions, batch, call logs, live streams with custom turn logic)
+│  └─ Nova models via /v1/listen
+│     ├─ Pre-recorded file    →  REST  POST https://api.deepgram.com/v1/listen?model=nova-3
+│     └─ Live stream          →  WSS   wss://api.deepgram.com/v1/listen?model=nova-3
+│
+└─ Conversational audio / voice-agent-style turn detection
+   └─ Flux models via /v2/listen
+      └─ Live stream          →  WSS   wss://api.deepgram.com/v2/listen?model=flux-general-en
 
 Text → audio?
-├─ One-shot             →  REST  POST /v1/speak
-└─ Low-latency stream   →  WebSocket wss://api.deepgram.com/v1/speak
+├─ One-shot                   →  REST POST /v1/speak
+└─ Low-latency stream         →  WSS  wss://api.deepgram.com/v1/speak
 
 Full conversational voice agent (audio in, audio out)?
-└─ WebSocket wss://agent.deepgram.com/v1/agent/converse
+└─ WSS wss://agent.deepgram.com/v1/agent/converse
    Deepgram handles STT + your configured LLM + TTS internally
 
-Analyze text or audio for insights?
+Analyze text for insights?
 └─ REST POST /v1/read
    (summaries, sentiment, topics, intents)
 ```
+
+## Speech-to-Text: Nova (`/v1/listen`) vs Flux (`/v2/listen`)
+
+Both model families are actively maintained and industry-leading. They solve different problems — pick the one that matches your use case.
+
+| | Nova (`/v1/listen`) | Flux (`/v2/listen`) |
+|---|---|---|
+| Endpoint | `/v1/listen` | `/v2/listen` |
+| Available models | `nova-3`, `nova-2`, `nova`, `enhanced`, `base` | `flux-general-en` |
+| Best for | General transcription — captions, subtitles, call logs, batch | Conversational audio — voice agents, interactive assistants, turn-taking UIs |
+| Output | Continuous transcript stream | Structured turn events + transcripts (built-in turn state machine) |
+| Turn detection | Manual (`utterance_end_ms`, VAD events) | Built-in (EOT, eager-EOT, turn_index) |
+| Transports | REST + WebSocket | WebSocket only |
+| Intelligence overlays | Yes — `summarize`, `sentiment`, `topics`, `intents`, `diarize`, `redact`, etc. | No — smaller focused param set; no `smart_format` / `diarize` / `punctuate` |
+| Mid-session reconfig | No (reconnect to change) | Yes (`Configure` message updates EOT thresholds + keyterms live) |
+
+**Pick Nova (`/v1/listen`, `model=nova-3`) when:**
+- Generating captions, subtitles, or transcripts for recorded media
+- Running batch transcription over files (REST)
+- You need analytics overlays (`summarize`, `sentiment`, `topics`, `intents`, `diarize`, `redact`)
+- You want WebSocket streaming with your own turn-detection logic
+
+**Pick Flux (`/v2/listen`, `model=flux-general-en`) when:**
+- Building an interactive voice agent or assistant
+- You want end-of-turn detection handled for you
+- You need low-latency turn signals and barge-in support
+- You want to update EOT thresholds or keyterms mid-session without reconnecting
+
+Migrating from Nova 3 to Flux? See the official [Nova 3 → Flux migration guide](https://developers.deepgram.com/docs/flux/nova-3-migration).
 
 ## API Domains
 
 | Domain | REST | WebSocket | Reference |
 |--------|------|-----------|-----------|
-| Listen (STT) | `POST /v1/listen` | `wss://api.deepgram.com/v1/listen` | [listen.md](references/listen.md) |
+| Listen v1 — STT, Nova models | `POST /v1/listen` | `wss://api.deepgram.com/v1/listen` | [listen.md](references/listen.md) |
+| Listen v2 — STT, Flux (conversational) | — | `wss://api.deepgram.com/v2/listen` | [listen.md](references/listen.md) |
 | Speak (TTS) | `POST /v1/speak` | `wss://api.deepgram.com/v1/speak` | [speak.md](references/speak.md) |
 | Voice Agent | `GET /v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
 | Read (Intelligence) | `POST /v1/read` | — | [read.md](references/read.md) |
@@ -122,6 +158,36 @@ Analyze text or audio for insights?
 ### Authentication
 
 12. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
+
+## SDK-Specific Skills
+
+This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills (`using-speech-to-text`, `using-text-to-speech`, `using-text-intelligence`, `using-audio-intelligence`, `using-voice-agent`, `using-conversational-stt`, `using-management-api`) and a maintainer skill.
+
+```bash
+# Install all skills from a specific SDK
+npx skills add deepgram/deepgram-python-sdk     # Python
+npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
+npx skills add deepgram/deepgram-java-sdk       # Java
+npx skills add deepgram/deepgram-go-sdk         # Go
+npx skills add deepgram/deepgram-rust-sdk       # Rust
+npx skills add deepgram/deepgram-swift-sdk      # Swift
+npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
+npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
+npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
+
+# Or install a specific product skill from one SDK
+npx skills add deepgram/deepgram-python-sdk --skill using-speech-to-text
+```
+
+## Related Deepgram skills
+
+| Skill | Purpose |
+|---|---|
+| `recipes` | Minimal runnable snippets per feature per language |
+| `examples` | Full integration examples with third-party platforms (Twilio, LiveKit, etc.) |
+| `starters` | Runnable starter apps (framework × feature matrix) |
+| `docs` | Navigate Deepgram documentation |
+| `setup-mcp` | Install the Deepgram MCP server |
 
 ## Documentation
 

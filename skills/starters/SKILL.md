@@ -15,13 +15,15 @@ Clone a working demo and start building. Every starter is a minimal, runnable ap
 
 What do you want to build?
 
-- **Transcribe a file** → `transcription` — send audio/video, get text back (REST)
-- **Transcribe a live stream** → `live-transcription` — real-time speech-to-text (WebSocket)
+- **Transcribe a file** → `transcription` — send audio/video, get text back (REST, Nova)
+- **Transcribe a live stream** → `live-transcription` — real-time speech-to-text (WebSocket, Nova)
 - **Generate speech** → `text-to-speech` — send text, get audio back (REST)
 - **Stream speech** → `live-text-to-speech` — real-time text-to-audio (WebSocket)
 - **Analyze text or audio** → `text-intelligence` — sentiment, topics, intents, summaries (REST)
-- **Build a voice agent** → `voice-agent` — conversational AI agent (WebSocket)
-- **Use Flux** → `flux` — Deepgram Flux (REST)
+- **Build a voice agent** → `voice-agent` — conversational AI agent (WebSocket, agent.deepgram.com)
+- **Conversational STT with turn detection** → `flux` — Deepgram Flux for voice agents and interactive assistants (WebSocket, `/v2/listen`)
+
+**Nova vs Flux for speech-to-text:** use `transcription` or `live-transcription` (Nova, `/v1/listen`) for general-purpose transcription, captions, and batch workloads. Use `flux` (Flux, `/v2/listen`) when you need built-in turn detection for conversational audio. See the `api` skill for a full comparison.
 
 ## 2. Pick Your Stack
 
@@ -86,3 +88,17 @@ Get an API key at <https://console.deepgram.com>.
 | **ruby** | [repo](https://github.com/deepgram-starters/ruby-transcription) | [repo](https://github.com/deepgram-starters/ruby-live-transcription) | [repo](https://github.com/deepgram-starters/ruby-text-to-speech) | [repo](https://github.com/deepgram-starters/ruby-live-text-to-speech) | [repo](https://github.com/deepgram-starters/ruby-text-intelligence) | [repo](https://github.com/deepgram-starters/ruby-voice-agent) | [repo](https://github.com/deepgram-starters/ruby-flux) |
 | **php** | [repo](https://github.com/deepgram-starters/php-transcription) | [repo](https://github.com/deepgram-starters/php-live-transcription) | [repo](https://github.com/deepgram-starters/php-text-to-speech) | [repo](https://github.com/deepgram-starters/php-live-text-to-speech) | [repo](https://github.com/deepgram-starters/php-text-intelligence) | [repo](https://github.com/deepgram-starters/php-voice-agent) | [repo](https://github.com/deepgram-starters/php-flux) |
 | **cpp** | [repo](https://github.com/deepgram-starters/cpp-transcription) | [repo](https://github.com/deepgram-starters/cpp-live-transcription) | [repo](https://github.com/deepgram-starters/cpp-text-to-speech) | [repo](https://github.com/deepgram-starters/cpp-live-text-to-speech) | [repo](https://github.com/deepgram-starters/cpp-text-intelligence) | [repo](https://github.com/deepgram-starters/cpp-voice-agent) | [repo](https://github.com/deepgram-starters/cpp-flux) |
+
+## Need something more specific?
+
+- **Focused feature snippets** (one feature, one language, < 50 lines) → `recipes` skill → <https://github.com/deepgram/recipes>
+- **Third-party integrations** (Twilio, LiveKit, LangChain, Vercel AI SDK, Discord, etc.) → `examples` skill → <https://github.com/deepgram/examples>
+- **SDK-specific code skills** (idiomatic imports, async patterns, gotchas) → `npx skills add deepgram/deepgram-{lang}-sdk` — see the `api` skill for the full list of 9 SDKs.
+
+## Related Deepgram skills
+
+- `api` — consolidated REST + WebSocket API reference
+- `recipes` — minimal runnable feature snippets per language
+- `examples` — full integration examples with third-party platforms
+- `docs` — documentation finder
+- `setup-mcp` — Deepgram MCP server installation

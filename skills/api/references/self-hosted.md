@@ -25,7 +25,6 @@ Example: `Authorization: Bearer eyJhbGciOiJ...`
 ## REST API
 
 ### GET `/v1/projects/{project_id}/self-hosted/distribution/credentials`
-> Server: `https://api.deepgram.com`
 
 List Project Self-Hosted Distribution Credentials
 
@@ -37,7 +36,6 @@ Lists sets of distribution credentials for the specified project
 **400**: Invalid Request
 
 ### POST `/v1/projects/{project_id}/self-hosted/distribution/credentials`
-> Server: `https://api.deepgram.com`
 
 Create a Project Self-Hosted Distribution Credential
 
@@ -45,7 +43,7 @@ Creates a set of distribution credentials for the specified project
 
 #### Query Parameters
 
-- `scopes` `self-hosted:products` | `self-hosted:product:api` | `self-hosted:product:engine` | `self-hosted:product:license-proxy` | `self-hosted:product:dgtools` | `self-hosted:product:billing` | `self-hosted:product:hotpepper` | `self-hosted:product:metrics-server`[] (default: `self-hosted:products`) — List of permission scopes for the credentials
+- `scopes` `self-hosted:products` | `self-hosted:product:api` | `self-hosted:product:engine` | `self-hosted:product:license-proxy` | `self-hosted:product:dgtools` | `self-hosted:product:billing` | `self-hosted:product:hotpepper` | `self-hosted:product:metrics-server`[] — List of permission scopes for the credentials
 - `provider` `quay` (default: `quay`) — The provider of the distribution service
 
 #### Request Body
@@ -60,7 +58,6 @@ Creates a set of distribution credentials for the specified project
 **400**: Invalid Request
 
 ### GET `/v1/projects/{project_id}/self-hosted/distribution/credentials/{distribution_credentials_id}`
-> Server: `https://api.deepgram.com`
 
 Get a Project Self-Hosted Distribution Credential
 
@@ -72,7 +69,6 @@ Returns a set of distribution credentials for the specified project
 **400**: Invalid Request
 
 ### DELETE `/v1/projects/{project_id}/self-hosted/distribution/credentials/{distribution_credentials_id}`
-> Server: `https://api.deepgram.com`
 
 Delete a Project Self-Hosted Distribution Credential
 
