@@ -26,7 +26,6 @@ Example: `Authorization: Bearer eyJhbGciOiJ...`
 ## REST API
 
 ### POST `/v1/auth/grant`
-> Server: `https://api.deepgram.com`
 
 Token-based Authentication
 

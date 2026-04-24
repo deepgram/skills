@@ -90,6 +90,25 @@ interface EndpointInfo {
   responses: any;
 }
 
+function normalizeTag(rawTag: string | undefined, path: string): string {
+  const t = (rawTag ?? "").toLowerCase();
+  const p = path.toLowerCase();
+  if (t.includes("listen") || p.includes("/listen")) return "Listen";
+  if (t.includes("speak") || p.includes("/speak")) return "Speak";
+  if (t.includes("voiceagent") || p.includes("/agent")) return "Agent";
+  if (t.includes("agent")) return "Agent";
+  if (t.includes("read") || p.includes("/read")) return "Read";
+  if (t.includes("selfhost") || t.includes("self-host") || t.includes("onprem") || p.includes("/selfhosted") || p.includes("/onprem")) return "Self-Hosted";
+  if (t.includes("models") || p.match(/\/models(\/|$)/)) return "Models";
+  if (t.includes("auth") || p.includes("/auth/")) return "Auth";
+  if (
+    t.includes("manage") || t.includes("projects") || t.includes("keys") ||
+    t.includes("members") || t.includes("invites") || t.includes("usage") ||
+    t.includes("billing") || t.includes("scopes") || p.includes("/projects")
+  ) return "Projects";
+  return "Other";
+}
+
 function groupOpenApiEndpoints(spec: any): Map<string, ApiGroup> {
   const groups = new Map<string, ApiGroup>();
   const paths = spec.paths ?? {};
@@ -99,11 +118,7 @@ function groupOpenApiEndpoints(spec: any): Map<string, ApiGroup> {
       const op = pathObj[method];
       if (!op) continue;
 
-      // Use the first meaningful tag as group key
-      const tag =
-        op.tags?.find((t: string) =>
-          ["Listen", "Speak", "Read", "Agent", "Models", "Projects", "Auth"].includes(t)
-        ) ?? op.tags?.[0] ?? "Other";
+      const tag = normalizeTag(op.tags?.[0], path);
 
       if (!groups.has(tag)) {
         groups.set(tag, { tag, endpoints: [] });
@@ -206,59 +221,77 @@ interface MessageInfo {
   payload?: any;
 }
 
+function messageName(refPath: string | undefined, resolved: any): string {
+  if (resolved?.name) return resolved.name;
+  if (resolved?.title) return resolved.title;
+  if (refPath) {
+    const last = refPath.split("/").pop() ?? "";
+    return last
+      .replace(/Message$|Event$/, "")
+      .replace(/^.*-\d+-/, "");
+  }
+  return "Unknown";
+}
+
+function extractMessages(spec: any, op: any): MessageInfo[] {
+  if (!op?.message) return [];
+  const variants = op.message.oneOf ?? [op.message];
+  const out: MessageInfo[] = [];
+  for (const v of variants) {
+    const refPath = v?.$ref;
+    const resolved = resolve(spec, v);
+    out.push({
+      name: messageName(refPath, resolved),
+      description: resolved?.description ?? op.description ?? op.summary ?? "",
+      payload: resolved?.payload ? resolve(spec, resolved.payload) : undefined,
+    });
+  }
+  return out;
+}
+
 function extractChannels(spec: any): ChannelInfo[] {
   const channels: ChannelInfo[] = [];
   const rawChannels = spec.channels ?? {};
-  const operations = spec.operations ?? {};
 
   for (const [name, ch] of Object.entries(rawChannels) as [string, any][]) {
-    const resolved = resolve(spec, ch);
-    if (!resolved.address) continue; // skip message-only entries
+    if (!ch || typeof ch !== "object") continue;
 
-    const serverRef = ch.servers?.[0]?.$ref;
-    const server = serverRef
-      ? resolveRef(spec, serverRef)
-      : ch.servers?.[0];
+    const address = ch.address ?? name;
 
-    const sendMsgs: MessageInfo[] = [];
-    const recvMsgs: MessageInfo[] = [];
+    const serverHost = spec.servers?.Production?.url
+      ?? spec.servers?.production?.url
+      ?? spec.servers?.[Object.keys(spec.servers ?? {})[0]]?.url;
 
-    // Classify messages using operations
-    for (const [opName, op] of Object.entries(operations) as [string, any][]) {
-      const opChannel = op.channel?.$ref;
-      if (!opChannel?.endsWith(`/${name}`)) continue;
+    const queryParams = ch.bindings?.ws?.query;
 
-      const msgs = (op.messages ?? []).map((m: any) => {
-        // Extract a readable name from the $ref path or resolved content
-        const refName = m.$ref
-          ? m.$ref.split("/").pop()?.replace(/Message$|Event$/, "")
-          : undefined;
-        const resolved = resolve(spec, m);
-        return {
-          name: resolved.name ?? resolved.title ?? refName ?? opName,
-          description: op.description ?? resolved.description ?? "",
-          payload: resolved.payload ? resolve(spec, resolved.payload) : undefined,
-        };
-      });
-
-      if (op.action === "send") sendMsgs.push(...msgs);
-      else if (op.action === "receive") recvMsgs.push(...msgs);
-    }
+    const publishMsgs = extractMessages(spec, ch.publish);
+    const subscribeMsgs = extractMessages(spec, ch.subscribe);
 
     channels.push({
       name,
-      address: resolved.address,
-      description: resolved.description ?? "",
-      server: server ? `wss://${server.host}` : undefined,
-      queryParams: resolved.bindings?.ws?.query
-        ? resolve(spec, resolved.bindings.ws.query)
-        : undefined,
-      sendMessages: sendMsgs,
-      receiveMessages: recvMsgs,
+      address,
+      description: ch.description ?? ch.publish?.description ?? ch.subscribe?.description ?? "",
+      server: resolveChannelServer(name, serverHost),
+      queryParams: queryParams ? resolve(spec, queryParams) : undefined,
+      sendMessages: subscribeMsgs,
+      receiveMessages: publishMsgs,
     });
   }
 
   return channels;
+}
+
+// Voice Agent runs on a dedicated server (`wss://agent.deepgram.com`). The
+// AsyncAPI spec declares only one global server, so per-channel servers are
+// applied here until the spec encodes them natively.
+function resolveChannelServer(channelName: string, specServer: string | undefined): string | undefined {
+  if (channelName.toLowerCase().includes("/agent")) {
+    return "wss://agent.deepgram.com";
+  }
+  if (!specServer) return undefined;
+  return specServer.startsWith("ws://") || specServer.startsWith("wss://")
+    ? specServer.replace(/\/$/, "")
+    : `wss://${specServer.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 }
 
 function renderChannel(ch: ChannelInfo): string {
@@ -304,9 +337,10 @@ function renderChannel(ch: ChannelInfo): string {
 // ---------------------------------------------------------------------------
 
 function channelDomain(name: string): string {
-  if (name.startsWith("Listen")) return "Listen";
-  if (name.startsWith("Speak")) return "Speak";
-  if (name.startsWith("Agent")) return "Agent";
+  const n = name.toLowerCase();
+  if (n.includes("/listen") || n.startsWith("listen")) return "Listen";
+  if (n.includes("/speak") || n.startsWith("speak")) return "Speak";
+  if (n.includes("/agent") || n.startsWith("agent")) return "Agent";
   return "Other";
 }
 

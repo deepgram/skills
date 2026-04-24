@@ -86,3 +86,17 @@ Get an API key at <https://console.deepgram.com>.
 | **ruby** | [repo](https://github.com/deepgram-starters/ruby-transcription) | [repo](https://github.com/deepgram-starters/ruby-live-transcription) | [repo](https://github.com/deepgram-starters/ruby-text-to-speech) | [repo](https://github.com/deepgram-starters/ruby-live-text-to-speech) | [repo](https://github.com/deepgram-starters/ruby-text-intelligence) | [repo](https://github.com/deepgram-starters/ruby-voice-agent) | [repo](https://github.com/deepgram-starters/ruby-flux) |
 | **php** | [repo](https://github.com/deepgram-starters/php-transcription) | [repo](https://github.com/deepgram-starters/php-live-transcription) | [repo](https://github.com/deepgram-starters/php-text-to-speech) | [repo](https://github.com/deepgram-starters/php-live-text-to-speech) | [repo](https://github.com/deepgram-starters/php-text-intelligence) | [repo](https://github.com/deepgram-starters/php-voice-agent) | [repo](https://github.com/deepgram-starters/php-flux) |
 | **cpp** | [repo](https://github.com/deepgram-starters/cpp-transcription) | [repo](https://github.com/deepgram-starters/cpp-live-transcription) | [repo](https://github.com/deepgram-starters/cpp-text-to-speech) | [repo](https://github.com/deepgram-starters/cpp-live-text-to-speech) | [repo](https://github.com/deepgram-starters/cpp-text-intelligence) | [repo](https://github.com/deepgram-starters/cpp-voice-agent) | [repo](https://github.com/deepgram-starters/cpp-flux) |
+
+## Need something more specific?
+
+- **Focused feature snippets** (one feature, one language, < 50 lines) → `recipes` skill → <https://github.com/deepgram/recipes>
+- **Third-party integrations** (Twilio, LiveKit, LangChain, Vercel AI SDK, Discord, etc.) → `examples` skill → <https://github.com/deepgram/examples>
+- **SDK-specific code skills** (idiomatic imports, async patterns, gotchas) → `npx skills add deepgram/deepgram-{lang}-sdk` — see the `api` skill for the full list of 9 SDKs.
+
+## Related Deepgram skills
+
+- `api` — consolidated REST + WebSocket API reference
+- `recipes` — minimal runnable feature snippets per language
+- `examples` — full integration examples with third-party platforms
+- `docs` — documentation finder
+- `setup-mcp` — Deepgram MCP server installation

@@ -53,6 +53,30 @@ Full reference for all Deepgram REST and WebSocket APIs.
 
 - [API Reference](https://developers.deepgram.com/reference/deepgram-api-overview)
 
+## SDK-Specific Skills
+
+For language-idiomatic code patterns (imports, async idioms, error handling, type shapes), install the Deepgram SDK's own skills. Every Deepgram SDK publishes 7 product skills plus a maintainer skill:
+
+```bash
+npx skills add deepgram/deepgram-python-sdk     # Python
+npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
+npx skills add deepgram/deepgram-java-sdk       # Java
+npx skills add deepgram/deepgram-go-sdk         # Go
+npx skills add deepgram/deepgram-rust-sdk       # Rust
+npx skills add deepgram/deepgram-swift-sdk      # Swift
+npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
+npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
+npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
+```
+
+## Related Deepgram skills
+
+- `api` — consolidated REST + WebSocket API reference
+- `recipes` — minimal runnable feature snippets per language
+- `examples` — full integration examples with third-party platforms
+- `starters` — runnable starter apps (framework × feature)
+- `setup-mcp` — Deepgram MCP server installation
+
 ## MCP Server
 
 For direct documentation querying from your AI coding tool, use `/deepgram:mcp` to set up the Deepgram MCP server.

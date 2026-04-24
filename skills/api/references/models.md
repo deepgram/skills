@@ -25,8 +25,33 @@ Example: `Authorization: Bearer eyJhbGciOiJ...`
 
 ## REST API
 
+### GET `/v1/projects/{project_id}/models`
+
+List Project Models
+
+Returns metadata on all the latest models that a specific project has access to, including non-public models
+
+#### Query Parameters
+
+- `include_outdated` boolean — returns non-latest versions of models
+
+#### Responses
+
+**200**: A list of models
+**400**: Invalid Request
+
+### GET `/v1/projects/{project_id}/models/{model_id}`
+
+Get a Project Model
+
+Returns metadata for a specific model
+
+#### Responses
+
+**200**: A model object that can be either STT or TTS
+**400**: Invalid Request
+
 ### GET `/v1/models`
-> Server: `https://api.deepgram.com`
 
 List Models
 
@@ -42,7 +67,6 @@ Returns metadata on all the latest public models. To retrieve custom models, use
 **400**: Invalid Request
 
 ### GET `/v1/models/{model_id}`
-> Server: `https://api.deepgram.com`
 
 Get a specific Model
 

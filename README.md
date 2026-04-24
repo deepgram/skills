@@ -26,7 +26,29 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
 | [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 7 features |
+| [recipes](./skills/recipes) | Focused runnable recipes for one feature × one language — minimal working code (< 50 lines) |
+| [examples](./skills/examples) | Integration examples with third-party platforms (Twilio, LiveKit, LangChain, Vercel AI SDK, etc.) |
 | [setup-mcp](./skills/setup-mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
+
+## SDK-Specific Skills
+
+Each Deepgram SDK repository publishes its own set of language-idiomatic skills under `.agents/skills/`:
+
+```bash
+npx skills add deepgram/deepgram-python-sdk     # Python
+npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
+npx skills add deepgram/deepgram-java-sdk       # Java
+npx skills add deepgram/deepgram-go-sdk         # Go
+npx skills add deepgram/deepgram-rust-sdk       # Rust
+npx skills add deepgram/deepgram-swift-sdk      # Swift
+npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
+npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
+npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
+```
+
+Each SDK ships 7 product skills (`using-speech-to-text`, `using-text-to-speech`, `using-text-intelligence`, `using-audio-intelligence`, `using-voice-agent`, `using-conversational-stt`, `using-management-api`) plus a maintainer skill.
+
+This `deepgram/skills` repo covers product contracts (API reference, docs, starters, recipes, integrations, MCP). The SDK repos cover language-specific usage.
 
 # Install
 

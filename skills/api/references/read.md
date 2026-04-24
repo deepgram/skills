@@ -27,7 +27,6 @@ Example: `Authorization: Bearer eyJhbGciOiJ...`
 ## REST API
 
 ### POST `/v1/read`
-> Server: `https://api.deepgram.com`
 
 Analyze text content
 

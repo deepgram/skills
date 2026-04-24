@@ -123,6 +123,36 @@ Analyze text or audio for insights?
 
 12. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
 
+## SDK-Specific Skills
+
+This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills (`using-speech-to-text`, `using-text-to-speech`, `using-text-intelligence`, `using-audio-intelligence`, `using-voice-agent`, `using-conversational-stt`, `using-management-api`) and a maintainer skill.
+
+```bash
+# Install all skills from a specific SDK
+npx skills add deepgram/deepgram-python-sdk     # Python
+npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
+npx skills add deepgram/deepgram-java-sdk       # Java
+npx skills add deepgram/deepgram-go-sdk         # Go
+npx skills add deepgram/deepgram-rust-sdk       # Rust
+npx skills add deepgram/deepgram-swift-sdk      # Swift
+npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
+npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
+npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
+
+# Or install a specific product skill from one SDK
+npx skills add deepgram/deepgram-python-sdk --skill using-speech-to-text
+```
+
+## Related Deepgram skills
+
+| Skill | Purpose |
+|---|---|
+| `recipes` | Minimal runnable snippets per feature per language |
+| `examples` | Full integration examples with third-party platforms (Twilio, LiveKit, etc.) |
+| `starters` | Runnable starter apps (framework × feature matrix) |
+| `docs` | Navigate Deepgram documentation |
+| `setup-mcp` | Install the Deepgram MCP server |
+
 ## Documentation
 
 - [API Reference](https://developers.deepgram.com/reference/deepgram-api-overview)
