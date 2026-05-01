@@ -95,7 +95,22 @@ This gives you the following slash commands:
 - `/deepgram:api` — Deepgram API reference
 - `/deepgram:docs` — Find the right documentation
 - `/deepgram:starters` — Clone a starter app
+- `/deepgram:recipes` — Focused runnable recipes for one feature × one language
+- `/deepgram:examples` — Integration examples with third-party platforms
 - `/deepgram:setup-mcp` — Set up the Deepgram MCP server
+
+You can also install SDK-specific skill plugins from the same marketplace:
+
+```
+/plugin install deepgram-js-sdk@deepgram-agent-skills
+/plugin install deepgram-python-sdk@deepgram-agent-skills
+/plugin install deepgram-java-sdk@deepgram-agent-skills
+/plugin install deepgram-go-sdk@deepgram-agent-skills
+/plugin install deepgram-rust-sdk@deepgram-agent-skills
+/plugin install deepgram-dotnet-sdk@deepgram-agent-skills
+```
+
+Each SDK plugin installs the 7 language-idiomatic skills from that SDK's repository.
 
 # Creating a Skill
 

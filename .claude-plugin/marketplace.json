@@ -11,14 +11,106 @@
   "plugins": [
     {
       "name": "deepgram",
-      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, and MCP server setup",
+      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, recipes, integration examples, and MCP server setup",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/api",
         "./skills/docs",
         "./skills/starters",
+        "./skills/recipes",
+        "./skills/examples",
         "./skills/setup-mcp"
+      ]
+    },
+    {
+      "name": "deepgram-js-sdk",
+      "description": "Deepgram JavaScript and TypeScript SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-js-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-js-audio-intelligence",
+        ".agents/skills/deepgram-js-conversational-stt",
+        ".agents/skills/deepgram-js-management-api",
+        ".agents/skills/deepgram-js-speech-to-text",
+        ".agents/skills/deepgram-js-text-intelligence",
+        ".agents/skills/deepgram-js-text-to-speech",
+        ".agents/skills/deepgram-js-voice-agent"
+      ]
+    },
+    {
+      "name": "deepgram-python-sdk",
+      "description": "Deepgram Python SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-python-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-python-audio-intelligence",
+        ".agents/skills/deepgram-python-conversational-stt",
+        ".agents/skills/deepgram-python-management-api",
+        ".agents/skills/deepgram-python-speech-to-text",
+        ".agents/skills/deepgram-python-text-intelligence",
+        ".agents/skills/deepgram-python-text-to-speech",
+        ".agents/skills/deepgram-python-voice-agent"
+      ]
+    },
+    {
+      "name": "deepgram-java-sdk",
+      "description": "Deepgram Java SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-java-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-java-audio-intelligence",
+        ".agents/skills/deepgram-java-conversational-stt",
+        ".agents/skills/deepgram-java-management-api",
+        ".agents/skills/deepgram-java-speech-to-text",
+        ".agents/skills/deepgram-java-text-intelligence",
+        ".agents/skills/deepgram-java-text-to-speech",
+        ".agents/skills/deepgram-java-voice-agent"
+      ]
+    },
+    {
+      "name": "deepgram-go-sdk",
+      "description": "Deepgram Go SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-go-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-go-audio-intelligence",
+        ".agents/skills/deepgram-go-conversational-stt",
+        ".agents/skills/deepgram-go-management-api",
+        ".agents/skills/deepgram-go-speech-to-text",
+        ".agents/skills/deepgram-go-text-intelligence",
+        ".agents/skills/deepgram-go-text-to-speech",
+        ".agents/skills/deepgram-go-voice-agent"
+      ]
+    },
+    {
+      "name": "deepgram-rust-sdk",
+      "description": "Deepgram Rust SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-rust-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-rust-audio-intelligence",
+        ".agents/skills/deepgram-rust-conversational-stt",
+        ".agents/skills/deepgram-rust-management-api",
+        ".agents/skills/deepgram-rust-speech-to-text",
+        ".agents/skills/deepgram-rust-text-intelligence",
+        ".agents/skills/deepgram-rust-text-to-speech",
+        ".agents/skills/deepgram-rust-voice-agent"
+      ]
+    },
+    {
+      "name": "deepgram-dotnet-sdk",
+      "description": "Deepgram .NET SDK skills for speech-to-text, text-to-speech, voice agents, and audio intelligence",
+      "source": { "source": "github", "repo": "deepgram/deepgram-dotnet-sdk" },
+      "strict": false,
+      "skills": [
+        ".agents/skills/deepgram-dotnet-audio-intelligence",
+        ".agents/skills/deepgram-dotnet-conversational-stt",
+        ".agents/skills/deepgram-dotnet-management-api",
+        ".agents/skills/deepgram-dotnet-speech-to-text",
+        ".agents/skills/deepgram-dotnet-text-intelligence",
+        ".agents/skills/deepgram-dotnet-text-to-speech",
+        ".agents/skills/deepgram-dotnet-voice-agent"
       ]
     }
   ]
