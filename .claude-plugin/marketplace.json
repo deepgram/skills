@@ -11,13 +11,15 @@
   "plugins": [
     {
       "name": "deepgram",
-      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, and MCP server setup",
+      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, recipes, integration examples, and MCP server setup",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/api",
         "./skills/docs",
         "./skills/starters",
+        "./skills/recipes",
+        "./skills/examples",
         "./skills/setup-mcp"
       ]
     }
