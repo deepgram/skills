@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-01
+
+### Added
+
+- Marketplace: 6 SDK plugins — `deepgram-js-sdk`, `deepgram-python-sdk`, `deepgram-java-sdk`, `deepgram-go-sdk`, `deepgram-rust-sdk`, `deepgram-dotnet-sdk` — installable via `/plugin install <name>@deepgram-agent-skills`. Each aggregates the 7 language-idiomatic skills from its SDK repo's `.agents/skills/` directory via cross-repo `source` entries.
+- Marketplace: `examples` and `recipes` skills now exposed in the `deepgram` plugin (`/deepgram:examples`, `/deepgram:recipes`).
+
+### Changed
+
+- README and `skills/api/SKILL.md`: tightened `deepgram-{lang}-{product}` namespace references and `--skill` install examples following the SDK skill rename.
+
+[1.4.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.3.1...deepgram-skills-v1.4.0
+
 ## [1.2.4] - 2026-04-02
 
 ### Fixed
