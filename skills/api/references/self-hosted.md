@@ -43,7 +43,7 @@ Creates a set of distribution credentials for the specified project
 
 #### Query Parameters
 
-- `scopes` `self-hosted:products` | `self-hosted:product:api` | `self-hosted:product:engine` | `self-hosted:product:license-proxy` | `self-hosted:product:dgtools` | `self-hosted:product:billing` | `self-hosted:product:hotpepper` | `self-hosted:product:metrics-server`[] — List of permission scopes for the credentials
+- `scopes` `self-hosted:products` | `self-hosted:product:api` | `self-hosted:product:engine` | `self-hosted:product:license-proxy` | `self-hosted:product:dgtools` | `self-hosted:product:billing` | `self-hosted:product:hotpepper` | `self-hosted:product:metrics-server`[] (default: `self-hosted:products`) — List of permission scopes for the credentials
 - `provider` `quay` (default: `quay`) — The provider of the distribution service
 
 #### Request Body

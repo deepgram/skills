@@ -48,11 +48,17 @@ Transcribe audio and video using Deepgram's speech-to-text REST API
 - `custom_intent_mode` `extended` | `strict` (default: `extended`) — Sets how the model will interpret intents submitted to the `custom_intent` param. When `strict`, the model will only return intents submitted using the `custom_intent` param. When `extended`, the model will return its own detected intents in the `custom_intent` param.
 - `detect_entities` boolean (default: `false`) — Identifies and extracts key entities from content in submitted audio
 - `detect_language` boolean | string[] — Identifies the dominant language spoken in submitted audio
-- `diarize` boolean (default: `false`) — Recognize speaker changes. Each word in the transcript will be assigned a speaker number starting at 0
+- `diarize` boolean (default: `false`) — Deprecated: use `diarize_model` instead. Recognize speaker changes. Each word in the transcript will be assigned a speaker number starting at 0.
+- `diarize_model` `latest` | `v1` | `v2` — Select and enable a specific diarization model version. Specifying this parameter enables diarization and selects the model — you do not need to also set the deprecated `diarize=true` parameter. For batch, supported values are `latest` (currently v2), `v1`, and `v2`. For streaming, supported values are `latest` (currently v1) and `v1`; `v2` returns a validation error on streaming requests.
 - `dictation` boolean (default: `false`) — Dictation mode for controlling formatting with dictated speech
 - `encoding` `linear16` | `flac` | `mulaw` | `amr-nb` | `amr-wb` | `opus` | `speex` | `g729` — Specify the expected encoding of your submitted audio
 - `filler_words` boolean (default: `false`) — Filler Words can help transcribe interruptions in your audio, like "uh" and "um"
-- `keyterm` string[] — Key term prompting can boost or suppress specialized terminology and brands. Only compatible with Nova-3
+- `keyterm` string[] — Key term prompting improves recognition of specialized terminology and brands. Only compatible with Nova-3.
+
+`keyterm` accepts plain terms only. Unlike the legacy `keywords` feature, it does not support weights or intensifiers. Appending one (for example, `keyterm=term:0.15`) is not rejected—the weight is silently ignored and the entire value is treated as a literal keyterm.
+
+To boost multiple separate keyterms, repeat the `keyterm` parameter (for example, `keyterm=term1&keyterm=term2`). To boost one multi-word phrase as a single keyterm, join the words with `%20` or `+` (for example, `keyterm=customer%20service`). Do not separate keyterms with commas, semicolons, or line breaks.
+
 - `keywords` string | string[] — Keywords can boost or suppress specialized terminology and brands
 - `language` string (default: `en`) — The [BCP-47 language tag](https://tools.ietf.org/html/bcp47) that hints at the primary spoken language. Depending on the Model and API endpoint you choose only certain languages are available
 - `measurements` boolean (default: `false`) — Spoken measurements will be converted to their corresponding abbreviations
@@ -95,7 +101,8 @@ Transcribe audio and video using Deepgram's speech-to-text WebSocket
 - `callback_method` `POST` | `GET` | `PUT` | `DELETE` (default: `POST`) — HTTP method by which the callback request will be made
 - `channels` any — Any type
 - `detect_entities` `true` | `false` (default: `false`) — Identifies and extracts key entities from content in submitted audio. Entities appear in final results. When enabled, Punctuation will also be enabled by default
-- `diarize` `true` | `false` (default: `false`) — Defaults to `false`. Recognize speaker changes. Each word in the transcript will be assigned a speaker number starting at 0
+- `diarize` `true` | `false` (default: `false`) — Deprecated. Use `diarize_model` instead. Defaults to `false`. Recognize speaker changes. Each word in the transcript will be assigned a speaker number starting at 0
+- `diarize_model` `latest` | `v1`
 - `dictation` `true` | `false` (default: `false`) — Identify and extract key entities from content in submitted audio
 - `encoding` `linear16` | `linear32` | `flac` | `alaw` | `mulaw` | `amr-nb` | `amr-wb` | `opus` | `ogg-opus` | `speex` | `g729` — Specify the expected encoding of your submitted audio
 - `endpointing` any — Any type
@@ -155,9 +162,27 @@ for natural voice conversations
 - `eager_eot_threshold` any — Any type
 - `eot_threshold` any — Any type
 - `eot_timeout_ms` any — Any type
-- `keyterm` string | string[] — Keyterm prompting can improve recognition of specialized terminology.
-Pass multiple keyterm query parameters to boost multiple keyterms.
+- `keyterm` string | string[] — Keyterm prompting improves recognition of specialized terminology.
 
+`keyterm` accepts plain terms only. Unlike the legacy `keywords` feature,
+it does not support weights or intensifiers. Appending one
+(for example, `keyterm=term:0.15`) is not rejected—the weight is
+silently ignored and the entire value is treated as a literal keyterm.
+
+To boost multiple separate keyterms, repeat the `keyterm` parameter
+(for example, `keyterm=term1&keyterm=term2`). To boost one multi-word
+phrase as a single keyterm, join the words with `%20` or `+`
+(for example, `keyterm=customer%20service`). Do not separate keyterms
+with commas, semicolons, or line breaks.
+
+- `language_hint` string | string[] — Language hints constrain and prioritize language detection for the
+flux-general-multi model. Pass multiple language_hint query parameters
+to specify multiple language codes. Empty values are rejected.
+Only valid when model is flux-general-multi.
+
+- `profanity_filter` `true` | `false` (default: `false`) — Profanity Filter looks for recognized profanity and converts it to the nearest recognized non-profane word or removes it from the transcript completely.
+- `numerals` `true` | `false` (default: `false`) — Numerals converts numbers from written format to numerical format
+- `redact` `numbers` | `aggressive_numbers` — Redaction removes sensitive information from your transcripts. On Flux, only `numbers` and `aggressive_numbers` are supported.
 - `mip_opt_out` any — Any type
 - `tag` any — Any type
 

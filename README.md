@@ -14,7 +14,12 @@ This repository contains skills for building with Deepgram's speech-to-text, tex
 Deepgram ships two actively maintained, industry-leading speech-to-text model families:
 
 - **Nova** (`/v1/listen`) — general-purpose transcription with a rich intelligence feature set (diarize, summarize, sentiment, topics, intents). Use for captions, subtitles, batch, and general live streaming.
-- **Flux** (`/v2/listen`, `model=flux-general-en`) — conversational STT with built-in turn detection. Use for voice agents and interactive assistants. See the `api` skill for the full Nova vs Flux decision guide.
+- **Flux STT** (`/v2/listen`, `model=flux-general-en`) — conversational STT with built-in turn detection. Use for voice agents and interactive assistants. See the `api` skill for the full Nova vs Flux STT decision guide.
+
+It ships two text-to-speech families on separate endpoints — the voices do not overlap:
+
+- **Aura** (`/v1/speak`) — the broadest voice catalog (English, Spanish, German, Dutch, French, Italian, Japanese) plus compressed and containerized output. Use for one-shot synthesis and non-English voices.
+- **Flux TTS** (`/v2/speak`, `model=flux-{voice}-{language}`) — streaming-first, turn-based synthesis with barge-in and cross-turn voice consistency. Use for voice agents. `model` is required, and only `flux-*` voices are accepted. See the `api` skill for the full Aura vs Flux TTS decision guide.
 
 Some skills are hand-written, others are generated from Deepgram's [OpenAPI](https://dpgr.am/openapi.yml) and [AsyncAPI](https://dpgr.am/asyncapi.yml) specs.
 
@@ -30,7 +35,7 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 |-------|-------------|
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
-| [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 7 features |
+| [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 8 features |
 | [recipes](./skills/recipes) | Focused runnable recipes for one feature × one language — minimal working code (< 50 lines) |
 | [examples](./skills/examples) | Integration examples with third-party platforms (Twilio, LiveKit, LangChain, Vercel AI SDK, etc.) |
 | [setup-mcp](./skills/setup-mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
