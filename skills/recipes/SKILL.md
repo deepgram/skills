@@ -43,12 +43,14 @@ recipes/{language}/{product}/{version}/{recipe}/
 | Product | Recipe examples |
 |---|---|
 | Speech-to-Text — Nova (`/v1/listen`) | transcribe-url, transcribe-file, paragraphs, diarize, smart-format, utterances, summarize, sentiment, topics, intents, detect-entities, detect-language, redact, search, keywords, streaming |
-| Speech-to-Text — Flux (`/v2/listen`) | streaming conversational transcription, EOT / eager-EOT, mid-session `Configure`, keyterms |
-| Text-to-Speech | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding |
+| Speech-to-Text — Flux STT (`/v2/listen`) | streaming conversational transcription, EOT / eager-EOT, mid-session `Configure`, keyterms |
+| Text-to-Speech — Aura (`/v1/speak`) | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding, bit-rate |
 | Audio Intelligence | summarize, sentiment, topics, intents, entities |
 | Voice Agents | connect, custom-llm, custom-tts, function-calling |
 
-Nova is the general-purpose STT family; Flux is designed for conversational audio and voice agents. Both are actively maintained — see the `api` skill's "Nova vs Flux" section for the decision guide.
+Nova is the general-purpose STT family; Flux STT is designed for conversational audio and voice agents. Both are actively maintained — see the `api` skill's "Nova vs Flux STT" section for the decision guide. Note that Flux STT (`/v2/listen`) and Flux TTS (`/v2/speak`) are separate products that share the Flux name.
+
+**Flux TTS (`/v2/speak`) has no recipes yet.** The TTS recipes above cover Aura on `/v1/speak` only — there is no `text-to-speech/v2` directory in the recipes repo. For Flux TTS, use the `api` skill's "Aura vs Flux TTS" section for the endpoint contract, or the `starters` skill's `flux-tts` apps (node, flask, fastapi, django, java) for runnable code.
 
 ## Languages
 

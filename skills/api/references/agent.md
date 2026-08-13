@@ -186,6 +186,10 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
 **AgentV1Settings** — Client messages
 
+**AgentV1UpdateListen** — Client messages
+
+**AgentV1UpdateThink** — Client messages
+
 **AgentV1UpdateSpeak** — Client messages
 
 **AgentV1InjectUser** — Client messages
@@ -198,19 +202,19 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
 **AgentV1UpdatePrompt** — Client messages
 
-**AgentV1UpdateThink** — Client messages
-
 **AgentV1Media** — Client messages
 
 #### Server → Client Messages
+
+**AgentV1ListenUpdated** — Server messages
+
+**AgentV1ThinkUpdated** — Server messages
 
 **AgentV1ReceiveFunctionCallResponse** — Server messages
 
 **AgentV1PromptUpdated** — Server messages
 
 **AgentV1SpeakUpdated** — Server messages
-
-**AgentV1ThinkUpdated** — Server messages
 
 **AgentV1InjectionRefused** — Server messages
 
@@ -224,6 +228,8 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
 **AgentV1AgentThinking** — Server messages
 
+**AgentV1LatencyReport** — Server messages
+
 **AgentV1FunctionCallRequest** — Server messages
 
 **AgentV1AgentStartedSpeaking** — Server messages
@@ -233,5 +239,7 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 **AgentV1Error** — Server messages
 
 **AgentV1Warning** — Server messages
+
+**AgentV1History** — Server messages
 
 **AgentV1Audio** — Server messages

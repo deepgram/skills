@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-12
+
+### Added
+
+Flux TTS — Deepgram's streaming-first, voice-agent-first TTS family on the new `/v2/speak` endpoint. It ships alongside `/v1/speak`, which is unchanged; Aura voices are served only on v1 and Flux voices only on v2.
+
+- API skill: `references/speak.md` now covers both `/v2/speak` transports — `POST /v2/speak` (batch REST) and `wss://api.deepgram.com/v2/speak` (streaming), with all 5 client and 11 server `SpeakV2*` messages
+- API skill: "Aura (`/v1/speak`) vs Flux TTS (`/v2/speak`)" decision guide — feature matrix, pick-when bullets, and migration links, mirroring the existing Nova vs Flux section
+- API skill: `/v2/speak` added to the architecture diagram, the "Which API should I use?" decision tree, and the API Domains table (which now splits Speak into v1 and v2 rows, following the Listen v1/v2 precedent)
+- API skill: `### Flux TTS (/v2/speak)` gotchas — `model` is required and must be `flux-*`, `Flush` ends the turn (no `Finalize`; use `SpeechMetadata` as the end-of-turn signal), streaming is raw-audio-only and rejects batch-only or unknown params, and the server does not insert whitespace between `Speak` messages
+- API skill: Voice Agent gotcha for `agent.speak.provider.version` — `v2` selects Flux TTS, `v1` selects Aura, and **omitting `agent.speak` entirely now defaults to Flux TTS `flux-kit-en`**
+- Docs skill: TTS section rebuilt with Aura and Flux TTS model-family bullets plus the Flux TTS overview, streaming and batch quickstarts, batch-vs-streaming, voices, and migration links; Voice Agent section gains the TTS-models and Flux-TTS-voice-agent guides
+- Starters skill: `flux-tts` feature bullet, an Aura vs Flux TTS pointer, and a `flux-tts` matrix column. Populated for `node`, `flask`, `fastapi`, `django`, and `java` only — the five apps Deepgram publishes; the other 8 frameworks are marked unavailable so agents don't fabricate repo URLs
+- README: text-to-speech model families section, parallel to the existing speech-to-text one
+
+### Changed
+
+- Recipes skill: TTS row scoped to Aura (`/v1/speak`) and a note that Flux TTS has no recipes yet — there is no `text-to-speech/v2` directory in `deepgram/recipes`
+- Examples skill: note that no integration example covers Flux TTS yet, with guidance to take transport/auth from the example and the Flux TTS contract from the `api` skill
+
+### Fixed
+
+- Examples skill: removed a duplicated, malformed `LLM frameworks` row from the category map
+- Docs skill: MCP section referenced the removed `/deepgram:mcp` command; now points at the `setup-mcp` skill (renamed in 1.2.0)
+
+### Picked up in the spec regen
+
+Unrelated API surface changes that landed with the same `references/` regeneration, listed separately so the Flux TTS diff stays legible:
+
+- API skill: Aura-2 voice catalog expanded with German, Dutch, French, Italian, and Japanese voices, and additional Spanish voices
+- API skill: `/v1/listen` gains `diarize_model` (`latest` / `v1` / `v2`); `diarize` is now documented as deprecated in favour of it
+- API skill: `/v2/listen` gains `language_hint` (for `flux-general-multi`), `profanity_filter`, `numerals`, and `redact`, plus expanded `keyterm` guidance on both listen endpoints
+- API skill: Voice Agent gains `UpdateListen`, `UpdateThink`, `LatencyReport`, and `History` messages
+
+[1.5.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.4.0...deepgram-skills-v1.5.0
+
 ## [1.4.0] - 2026-05-01
 
 ### Added

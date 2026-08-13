@@ -3,8 +3,8 @@ name: docs
 description: >
   Find the right Deepgram documentation for any task. Use whenever someone needs help locating
   docs, understanding which API to use, or wants to ask questions about Deepgram. Covers all
-  product areas: speech-to-text, text-to-speech, voice agents, audio intelligence, and
-  self-hosted deployments.
+  product areas: speech-to-text (Nova, Flux STT), text-to-speech (Aura, Flux TTS), voice agents,
+  audio intelligence, and self-hosted deployments.
 ---
 
 # Deepgram Documentation
@@ -22,25 +22,38 @@ Have a question? Get answers from Deepgram's AI assistant at <https://developers
 Transcribe audio and video into text. Deepgram ships two actively maintained, next-gen model families — pick the one that matches your use case.
 
 - **Nova** (`/v1/listen`) — general-purpose transcription (captions, subtitles, batch files, live streams). Rich feature set including intelligence overlays (diarize, summarize, sentiment, topics, intents).
-- **Flux** (`/v2/listen`) — conversational-audio transcription for voice agents and interactive assistants. Built-in turn-taking (EOT events, mid-session reconfig).
+- **Flux STT** (`/v2/listen`) — conversational-audio transcription for voice agents and interactive assistants. Built-in turn-taking (EOT events, mid-session reconfig).
 
 Docs:
 - [STT Getting Started (Nova)](https://developers.deepgram.com/docs/stt/getting-started)
-- [Flux Quickstart](https://developers.deepgram.com/docs/flux/quickstart)
-- [Nova 3 → Flux migration](https://developers.deepgram.com/docs/flux/nova-3-migration)
-- [Flux language prompting](https://developers.deepgram.com/docs/flux/language-prompting)
+- [Flux STT Quickstart](https://developers.deepgram.com/docs/flux/quickstart)
+- [Nova 3 → Flux STT migration](https://developers.deepgram.com/docs/flux/nova-3-migration)
+- [Flux STT language prompting](https://developers.deepgram.com/docs/flux/language-prompting)
 
 ### Text-to-Speech (TTS)
 
-Convert text into natural-sounding speech.
+Convert text into natural-sounding speech. Deepgram ships two TTS model families on separate endpoints — the voices do not overlap.
 
-- [Text-to-Speech Docs](https://developers.deepgram.com/docs/tts-rest)
+- **Aura** (`/v1/speak`) — the broadest voice catalog (English, Spanish, German, Dutch, French, Italian, Japanese) and compressed/containerized output. Use for one-shot synthesis and any non-English voice.
+- **Flux TTS** (`/v2/speak`) — streaming-first, voice-agent-first synthesis. Turn-based lifecycle, barge-in with spoken-text feedback, and prosody that carries across turns. English at launch.
+
+Docs:
+- [Text-to-Speech Docs (Aura)](https://developers.deepgram.com/docs/tts-rest)
+- [Aura voices and languages](https://developers.deepgram.com/docs/tts-models)
+- [Flux TTS Overview](https://developers.deepgram.com/docs/flux-tts/overview)
+- [Flux TTS Streaming Quickstart](https://developers.deepgram.com/docs/flux-tts/quickstart)
+- [Flux TTS Batch (REST) Quickstart](https://developers.deepgram.com/docs/flux-tts/batch)
+- [Flux TTS batch vs streaming](https://developers.deepgram.com/docs/flux-tts/batch-vs-streaming)
+- [Flux TTS voices](https://developers.deepgram.com/docs/flux-tts/voices)
+- [Aura → Flux TTS migration](https://developers.deepgram.com/docs/flux-tts/migrating)
 
 ### Voice Agent
 
 Build conversational voice agents powered by Deepgram.
 
 - [Voice Agent Docs](https://developers.deepgram.com/docs/voice-agent)
+- [Voice Agent TTS models (Aura vs Flux TTS)](https://developers.deepgram.com/docs/voice-agent-tts-models)
+- [Build a Flux TTS voice agent](https://developers.deepgram.com/docs/flux-tts/voice-agent)
 
 ### Text and Audio Intelligence
 
@@ -86,4 +99,4 @@ npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 
 ## MCP Server
 
-For direct documentation querying from your AI coding tool, use `/deepgram:mcp` to set up the Deepgram MCP server.
+For direct documentation querying from your AI coding tool, use the `setup-mcp` skill to install the Deepgram MCP server.
