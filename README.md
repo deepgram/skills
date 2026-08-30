@@ -50,11 +50,13 @@ npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
 npx skills add deepgram/deepgram-java-sdk       # Java
 npx skills add deepgram/deepgram-go-sdk         # Go
 npx skills add deepgram/deepgram-rust-sdk       # Rust
-npx skills add deepgram/deepgram-swift-sdk      # Swift
-npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
-npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 ```
+
+Swift and Kotlin SDK repositories are not yet public; their skills will be
+listed here once the repositories open. For browser use, install the
+JavaScript / TypeScript skills above — `@deepgram/sdk` runs in the browser
+as well as Node.
 
 Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. Example names for the Python SDK:
 
