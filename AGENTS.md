@@ -1,5 +1,8 @@
 # deepgram/skills
 
+Instructions for AI coding agents working in this repository. Read this file
+before writing any code.
+
 Agent-agnostic skills for building with Deepgram: plain-markdown instruction
 folders that AI coding tools (Claude Code, Cursor, Windsurf, GitHub Copilot,
 Gemini CLI, and others) load to use Deepgram's speech-to-text, text-to-speech,
@@ -49,3 +52,13 @@ bun install && bun run scripts/generate-skills.ts
 | `npx skills add deepgram/<repo>` fails with a not-found or auth error | the target repository is private or does not exist | only the six public SDK repositories listed in README.md carry installable skills |
 | `bun: command not found` | bun not installed | install from https://bun.sh; the generation scripts are bun-only |
 | Regenerated `api` skill shows unexpected churn | the upstream specs moved | inspect the spec diff first; the specs are the source of truth |
+
+## Live documentation and machine-readable surfaces
+
+- Documentation: https://developers.deepgram.com — append `.md` to any docs
+  page URL to get clean Markdown.
+- Agent index of all documentation: https://developers.deepgram.com/llms.txt
+- API specifications: https://developers.deepgram.com/openapi.yaml and
+  https://developers.deepgram.com/asyncapi.yaml, mirrored hourly at
+  https://github.com/deepgram/deepgram-api-specs
+- API status (machine-readable): https://status.deepgram.com/api/v2/status.json
