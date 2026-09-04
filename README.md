@@ -33,6 +33,9 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 
 | Skill | Description |
 |-------|-------------|
+| [speech-to-text](./skills/speech-to-text) | Start here for transcription: Nova on `/v1/listen` or Flux STT on `/v2/listen`, a first request, and where to go next |
+| [text-to-speech](./skills/text-to-speech) | Start here for synthesis: Aura on `/v1/speak` or Flux TTS on `/v2/speak`, a first request, and where to go next |
+| [voice-agent](./skills/voice-agent) | Start here for a voice agent: the Voice Agent API over one WebSocket, function calling, telephony wiring, and when to use an orchestrator instead |
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
 | [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 8 features |
@@ -75,7 +78,17 @@ This `deepgram/skills` repo covers product contracts (API reference, docs, start
 
 ## Any AI coding tool
 
-Works with Claude Code, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [30+ others](https://github.com/vercel-labs/skills):
+Works with Claude Code, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [30+ others](https://github.com/vercel-labs/skills).
+
+Install the skill for what you are building:
+
+```bash
+npx skills add deepgram/skills --skill speech-to-text
+npx skills add deepgram/skills --skill text-to-speech
+npx skills add deepgram/skills --skill voice-agent
+```
+
+Or install every skill in this repository:
 
 ```bash
 npx skills add deepgram/skills
@@ -97,6 +110,9 @@ Then install the Deepgram plugin:
 
 This gives you the following slash commands:
 
+- `/deepgram:speech-to-text` — Start here for transcription
+- `/deepgram:text-to-speech` — Start here for synthesis
+- `/deepgram:voice-agent` — Start here for a voice agent
 - `/deepgram:api` — Deepgram API reference
 - `/deepgram:docs` — Find the right documentation
 - `/deepgram:starters` — Clone a starter app
