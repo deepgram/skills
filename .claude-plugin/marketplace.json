@@ -11,10 +11,13 @@
   "plugins": [
     {
       "name": "deepgram",
-      "description": "Deepgram skills for AI coding tools — API reference, documentation, starter apps, recipes, integration examples, and MCP server setup",
+      "description": "Deepgram skills for AI coding tools — speech-to-text, text-to-speech, and voice-agent on-ramps, API reference, documentation, starter apps, recipes, integration examples, and MCP server setup",
       "source": "./",
       "strict": false,
       "skills": [
+        "./skills/speech-to-text",
+        "./skills/text-to-speech",
+        "./skills/voice-agent",
         "./skills/api",
         "./skills/docs",
         "./skills/starters",
