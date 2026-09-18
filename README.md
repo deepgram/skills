@@ -80,7 +80,7 @@ This `deepgram/skills` repo covers product contracts (API reference, docs, start
 
 ## Any AI coding tool
 
-Works with Claude Code, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [30+ others](https://github.com/vercel-labs/skills).
+Works with Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [70+ others](https://github.com/vercel-labs/skills).
 
 Install the skill for what you are building:
 
@@ -94,6 +94,12 @@ Or install every skill in this repository:
 
 ```bash
 npx skills add deepgram/skills
+```
+
+The installer detects the agents on your machine. To target agents explicitly, pass `-a` with the agent name (`claude-code`, `codex`, `cursor`), and `--skill` to install one skill:
+
+```bash
+npx skills add deepgram/skills -a codex -a cursor --skill api
 ```
 
 ## Claude Code (native plugin system)
@@ -135,9 +141,41 @@ You can also install SDK-specific skill plugins from the same marketplace:
 
 Each SDK plugin installs the 7 language-idiomatic skills from that SDK's repository.
 
+## OpenAI Codex
+
+Codex loads skills from `.agents/skills/` in your working directory and every directory up to the repository root. Install the Deepgram skills into a project:
+
+```bash
+npx skills add deepgram/skills -a codex
+```
+
+This writes `.agents/skills/<skill>/` for each skill you select. Codex also reads `~/.agents/skills/` for user-wide skills, so add `-g` to install there instead of into the project:
+
+```bash
+npx skills add deepgram/skills -a codex -g
+```
+
+Inside Codex, run `/skills` to browse and apply a skill, or type `$speech-to-text`, `$text-to-speech`, `$voice-agent`, `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
+
+To give Codex the live documentation as well, add the Deepgram docs MCP server:
+
+```bash
+codex mcp add deepgram-docs --url https://api.dx.deepgram.com/kapa/mcp
+```
+
+See [Build skills](https://learn.chatgpt.com/docs/build-skills) and [Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) in the Codex documentation.
+
+## Cursor
+
+The same installer targets Cursor, writing each skill to `.agents/skills/<skill>/` in the project:
+
+```bash
+npx skills add deepgram/skills -a cursor
+```
+
 # Creating a Skill
 
-Skills are a folder with a `SKILL.md` file containing YAML frontmatter and instructions. Use the [template](./template/SKILL.md) as a starting point:
+Skills are a folder with a `SKILL.md` file containing YAML frontmatter and instructions. Use the [template](./template/SKILL.md) as a starting point, and read [CONTRIBUTING.md](./CONTRIBUTING.md) for the folder layout, local testing, the review checklist, and the release process:
 
 ```markdown
 ---
