@@ -69,15 +69,17 @@ Published versions at the time of writing — check each registry before pinning
 |---|---|---|---|
 | Python | PyPI `deepgram-sagemaker` | **0.4.0** | [deepgram-python-sdk-transport-sagemaker](https://github.com/deepgram/deepgram-python-sdk-transport-sagemaker) |
 | Java | Maven Central `com.deepgram:deepgram-sagemaker` | **0.1.3** | [deepgram-java-sdk-transport-sagemaker](https://github.com/deepgram/deepgram-java-sdk-transport-sagemaker) |
-| JavaScript | npm `@deepgram/sagemaker` | **0.1.1** | [deepgram-js-sdk-transport-sagemaker](https://github.com/deepgram/deepgram-js-sdk-transport-sagemaker) |
+| JavaScript | npm `@deepgram/sagemaker` | **0.1.2** | [deepgram-js-sdk-transport-sagemaker](https://github.com/deepgram/deepgram-js-sdk-transport-sagemaker) |
 
-All three repositories are public and MIT licensed. Check the registry for a newer version before pinning — these move independently of the SDKs. Note the JS README currently shows `@deepgram/sagemaker@0.1.2` in its install line while npm's latest is `0.1.1`; trust the registry.
+All three repositories are public and MIT licensed.
+
+**Resolve these against the registry, not against this table or a README.** They move independently of the SDKs and fast: `@deepgram/sagemaker` went from `0.1.1` to `0.1.2` inside a single afternoon, and its peer range on `@deepgram/sdk` changed with it. A transport README's install line can sit ahead of what is actually published, or behind it. Check `npm view @deepgram/sagemaker version`, the PyPI JSON API, or Maven Central metadata before you pin.
 
 ### Python
 
 Requires **Python 3.12+**, which *is* enforced: the package declares `requires_python >=3.12,<4.0`.
 
-Its declared dependencies are only `aws-sdk-sagemaker-runtime-http2[awscrt]>=0.11,<0.12` and `boto3`. **`deepgram-sdk` is not among them.** The `>=7.8.1,<8.0.0` range below comes from the transport README's install line, not from package metadata, so nothing stops pip from resolving an incompatible SDK alongside it — pin the SDK yourself and treat a mismatch as your problem to catch. This differs from the JS package, which declares a real `peerDependencies` entry on `@deepgram/sdk >=5.4.0` and so warns on a bad pairing.
+Its declared dependencies are only `aws-sdk-sagemaker-runtime-http2[awscrt]>=0.11,<0.12` and `boto3`. **`deepgram-sdk` is not among them.** The `>=7.8.1,<8.0.0` range below comes from the transport README's install line, not from package metadata, so nothing stops pip from resolving an incompatible SDK alongside it — pin the SDK yourself and treat a mismatch as your problem to catch. This differs from the JS package, which declares a real `peerDependencies` entry on `@deepgram/sdk` (`>=5.5.0 <6`) and so warns on a bad pairing.
 
 `awscrt` is a compiled extension: supported platforms get a wheel, others need a C toolchain.
 
@@ -127,7 +129,7 @@ Examples in the repository: `examples/sagemaker_stt.py`, `sagemaker_tts.py`, `sa
 
 ### JavaScript / TypeScript
 
-Requires **Node.js 20+** and `@deepgram/sdk` — the package declares a peer dependency of `>=5.4.0`, and the README notes it targets the pluggable transport interface from JS SDK PR `#492`, so use an SDK build that includes `transportFactory` support.
+Requires **Node.js 20+** and `@deepgram/sdk` **`>=5.5.0 <6`**, declared as a real peer dependency — `5.5.0` is the first SDK release with `transportFactory` support. The `examples/flux-tts.mjs` example needs `>=5.6.0` for Speak v2.
 
 ```bash
 npm install @deepgram/sdk @deepgram/sagemaker
