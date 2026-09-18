@@ -14,37 +14,37 @@ description: >
 
 # Deepgram Browser Agent SDK
 
-Four packages, each wrapping the one below, all speaking the same Voice Agent WebSocket. Pick a layer by how much UI you want handled for you, not by package name. [1]
+Deepgram runs listen, think, and speak behind one WebSocket and handles the turn-taking between them. These four packages get a browser onto that socket; each wraps the one below. Pick a layer by how much UI you want to build yourself, not by package name. [1]
 
 ## Pick the layer first
 
-| Use | When | Install |
+| Package | When | Install |
 |---|---|---|
-| `@deepgram/agents-widget` | You want a voice agent on a page today. No framework, no build step. Six layouts (`sidebar`, `floating`, `inline`, `button`, `embedded`, `orb`), themed by design tokens. Accept its UI. | `@deepgram/agents-widget` |
-| `@deepgram/ui` | React app, and Deepgram's conversation view, orb, waveform, and mic/speaker buttons are close enough to your design. Retheme with CSS custom properties. | `@deepgram/ui` only — see the duplicate-context trap below |
+| `@deepgram/agents-widget` | You want a voice agent on a page today, with no framework and no build step, and you can live with its UI. It ships six layouts (`sidebar`, `floating`, `inline`, `button`, `embedded`, `orb`), themed with CSS custom properties. | `@deepgram/agents-widget` |
+| `@deepgram/ui` | React app, and the conversation view, orb, waveform, and mic/speaker buttons listed below are close enough to your design. Retheme them with CSS custom properties. | `@deepgram/ui` only. See Common mistakes 3 |
 | `@deepgram/react` | React app, you build every pixel. Provider plus focused hooks manage the connection, mic, playback, transcript, and client tools. | `@deepgram/react @deepgram/agents` |
-| `@deepgram/agents` | Vue, Svelte, Angular, vanilla JS, or a non-React runtime. `AgentSession` + `AgentMicrophone` + `AgentPlayer`, wire the events yourself. | `@deepgram/agents` |
+| `@deepgram/agents` | You are on Vue, Svelte, Angular, vanilla JS, or another non-React runtime. `AgentSession`, `AgentMicrophone`, and `AgentPlayer` give you the pieces; you wire the events. | `@deepgram/agents` |
 
-Each layer re-exports the layer below, so installing `@deepgram/ui` gives you `AgentProvider`, all ten `useAgent*` hooks, and the `@deepgram/agents` types from one import (verified: `@deepgram/ui@0.1.6` exports `AgentProvider`, `useAgentClientTool`, `useAgentContext`, `useAgentControls`, `useAgentConversation`, `useAgentMicrophone`, `useAgentMode`, `useAgentPlayer`, `useAgentSession`, `useAgentState`, `useDeepgramAgent`). [7]
+Each layer re-exports the layer below, so `@deepgram/ui` alone gives you `AgentProvider`, the `@deepgram/agents` types, and all ten hooks: `useAgentClientTool`, `useAgentContext`, `useAgentControls`, `useAgentConversation`, `useAgentMicrophone`, `useAgentMode`, `useAgentPlayer`, `useAgentSession`, `useAgentState`, and `useDeepgramAgent`. [7]
 
-## Versions and stability, checked 2026-09-18
+## Versions and stability (as of 2026-09-18)
 
 | Package | Version | Repo |
 |---|---|---|
-| `@deepgram/agents` | 0.1.2 | `deepgram/agent`, `packages/sdk` |
-| `@deepgram/agents-widget` | 0.1.8 | `deepgram/agent`, `packages/widget` |
+| `@deepgram/agents` | 0.1.2 | `deepgram/agent` (`packages/sdk`) |
+| `@deepgram/agents-widget` | 0.1.8 | `deepgram/agent` (`packages/widget`) |
 | `@deepgram/react` | 0.2.0 | `deepgram/react` |
 | `@deepgram/ui` | 0.1.6 | `deepgram/ui` |
 
-All four are pre-1.0 and `latest` is the only dist-tag on each. `@deepgram/ui`'s README states: "This library is pre-1.0. Interfaces may change between minor versions, and releases are cut as the library evolves rather than on a fixed schedule." Treat every export name here as true for the versions in that table and re-check `npm view <pkg> version` before trusting it. [3][4][5]
+All four are pre-1.0, and `latest` is the only dist-tag on each. `@deepgram/ui`'s README puts it plainly: "This library is pre-1.0. Interfaces may change between minor versions, and releases are cut as the library evolves rather than on a fixed schedule." Every export name below holds for the versions in that table. Run `npm view <pkg> version` first; where it disagrees with this table, the package wins. [3][4][5]
 
-Declared runtime dependencies, as published: `@deepgram/agents` → `@deepgram/sdk` 5.9.0. `@deepgram/react@0.2.0` → `@deepgram/agents ^0.1.2`, with `react`/`react-dom` `>=18` as peers. `@deepgram/ui@0.1.6` → `@deepgram/react ^0.1.0` + `@deepgram/agents ^0.1.1` + Radix/Tailwind pieces. `@deepgram/agents-widget@0.1.8` → `@deepgram/react ^0.1.0`, `@deepgram/ui ^0.1.4`, `@deepgram/agents ^0.1.2`, `preact`. Note the `^0.1.0` ranges: they exclude `@deepgram/react@0.2.0`. [6]
+Declared runtime dependencies, as published. `@deepgram/agents` depends on `@deepgram/sdk` 5.9.0. `@deepgram/react@0.2.0` depends on `@deepgram/agents ^0.1.2` and takes `react` and `react-dom` `>=18.0.0` as peers. `@deepgram/ui@0.1.6` depends on `@deepgram/react ^0.1.0`, `@deepgram/agents ^0.1.1`, and Radix and Tailwind helpers. `@deepgram/agents-widget@0.1.8` depends on `@deepgram/react ^0.1.0`, `@deepgram/ui ^0.1.4`, `@deepgram/agents ^0.1.2`, and `preact`, all bundled into its own build. Those `^0.1.0` ranges exclude `@deepgram/react@0.2.0`, which is what makes mistake 3 below possible. [6]
 
 ## Browser auth: never the API key
 
-A browser `WebSocket` cannot set request headers, so the SDK sends a short-lived bearer token as the `Sec-WebSocket-Protocol` handshake value. You supply that token through `tokenFactory`, which the SDK calls before every connect and every reconnect, so tokens can be seconds long. [1]
+A browser `WebSocket` cannot set request headers, so the SDK sends a short-lived bearer token as the `Sec-WebSocket-Protocol` handshake value. You supply that token through `tokenFactory`, which the SDK calls before every connect and every reconnect, so a few seconds of TTL is enough. The token only has to be valid at the handshake: once the socket is open, the token expiring does not close it, and a 30-second token is fine for an hour-long call. [1][2]
 
-Mint them on your own server. `POST https://api.deepgram.com/v1/auth/grant` with your real key returns `{"access_token":"...","expires_in":30}`:
+Mint them on your own server. `POST https://api.deepgram.com/v1/auth/grant` needs an API key with Member or higher authorization and returns `{"access_token":"...","expires_in":30}`. Its tokens work on the voice APIs but not on the Manage APIs:
 
 ```js
 // Server. The API key never leaves this process.
@@ -60,9 +60,9 @@ app.get("/api/deepgram-token", async (_req, res) => {
 });
 ```
 
-Then `auth: { tokenFactory: () => fetch("/api/deepgram-token").then(r => r.text()) }` in React and the SDK, or a top-level `tokenFactory` in the widget. Put your own session check in front of that route: anyone who can call it can open an agent session billed to you. The `apiKey` auth mode exists for server-side use and local experiments only; in a browser bundle it is a published credential. [1][2]
+Pass it as `auth: { tokenFactory: () => fetch("/api/deepgram-token").then(r => r.text()) }` in React and the SDK, or as a top-level `tokenFactory` in the widget. Put your own session check in front of that route: anyone who can call it can open an agent session billed to you. The `apiKey` auth mode exists for server-side use and local experiments only; in a browser bundle it is a published credential. [1][2]
 
-## Widget: one call
+## `@deepgram/agents-widget`: one call
 
 ```js
 import { init } from "@deepgram/agents-widget";
@@ -73,12 +73,12 @@ const teardown = init({
   layout: "floating",
   placement: "bottom-right",
 });
-// teardown() unmounts and removes injected styles — call it on SPA route change
+// teardown() unmounts and removes injected styles; call it on SPA route change
 ```
 
-`init` is the package's only function export; everything else it ships is types. For a no-build page, load the UMD bundle and call `DeepgramAgent.init(...)` — the global is `DeepgramAgent`. `https://cdn.deepgram.com/widgets/v0.1.8/widget.umd.js` serves a build byte-identical to npm 0.1.8 (414,517 bytes minified, ~91 KB gzipped; verified 2026-09-18). A `latest` path exists on that CDN and is a moving pointer, so pin the `v`-prefixed version in production. [2][8]
+`init` is the package's only function export; everything else it ships is type declarations. For a no-build page, load the UMD bundle and call `DeepgramAgent.init(...)`; the global is `DeepgramAgent`. `https://cdn.deepgram.com/widgets/v0.1.8/widget.umd.js` serves the same bundle as npm 0.1.8, 414,517 bytes minified and roughly 91 KB gzipped. The same CDN answers a `latest` path, which moves with each release, so pin the `v`-prefixed version in production. [2][8]
 
-## React hooks
+## `@deepgram/react`: provider and hooks
 
 ```tsx
 import { AgentProvider, useAgentState, useAgentConversation } from "@deepgram/react";
@@ -105,9 +105,9 @@ function Agent() {
 }
 ```
 
-The other hooks: `useAgentMode` (`idle`/`listening`/`thinking`/`speaking`), `useAgentMicrophone`, `useAgentPlayer`, `useAgentControls` (grouped lifecycle, messaging, runtime settings, mute), `useAgentClientTool` (register a function-call handler scoped to the component), `useAgentContext`, `useAgentSession` (the raw `AgentSession`), and `useDeepgramAgent` (no provider needed). `config`, `playerSampleRate`, and the initial `autoStart` fix the session for the provider's lifetime — change a connected agent with the runtime controls, not by mutating `config`. [4]
+The other hooks: `useAgentMode` (`idle`/`listening`/`thinking`/`speaking`), `useAgentMicrophone`, `useAgentPlayer`, `useAgentControls` (grouped lifecycle, messaging, runtime settings, mute), `useAgentClientTool` (register a function-call handler scoped to the component), `useAgentContext`, `useAgentSession` (the raw `AgentSession`), and `useDeepgramAgent` (no provider needed). `config`, `playerSampleRate`, and the initial `autoStart` are read once and pinned for the provider's lifetime. Change a connected agent with the runtime controls, not by mutating `config`. [4]
 
-## React UI components
+## `@deepgram/ui`: components
 
 ```tsx
 import { AgentProvider, AgentConversation, AgentTextInput, AgentStartButton, Orb } from "@deepgram/ui";
@@ -123,9 +123,9 @@ import "@deepgram/ui/styles.css";
 </AgentProvider>
 ```
 
-Components: `AgentStatus`, `AgentConversation`, `AgentMessage`, `AgentTextInput`, `AgentMicrophoneButton`, `AgentSpeakerButton`, `AgentStartButton`, plus `VoiceButton`, `Orb`, `LiveWaveform`, `BarVisualizer`, `MicSelector`, and `Response`. Styling is Tailwind v4 compiled into `@deepgram/ui/styles.css` and scoped to `[data-dg-agent]`; tokens are shadcn `--color-*` names you override on any `[data-dg-agent]` ancestor. `data-dg-scheme="dark"` on the same element forces dark; without it components follow `prefers-color-scheme`. A shadcn-compatible registry is published at `ui.deepgram.com`. [5]
+Components: `AgentStatus`, `AgentConversation`, `AgentMessage`, `AgentTextInput`, `AgentMicrophoneButton`, `AgentSpeakerButton`, `AgentStartButton`, plus `VoiceButton`, `Orb`, `LiveWaveform`, `BarVisualizer`, `MicSelector`, and `Response`. Styling is Tailwind v4 compiled into `@deepgram/ui/styles.css` and scoped to `[data-dg-agent]`; tokens are shadcn `--color-*` names you override on any `[data-dg-agent]` ancestor. `data-dg-scheme="dark"` on the same element forces dark; without it, components follow `prefers-color-scheme`. Install from npm rather than through a shadcn registry: `deepgram/ui` builds one, but `@deepgram/ui-registry` is a private package and `ui.deepgram.com` serves no registry JSON, so `npx shadcn add` against it returns 404. [5]
 
-## Raw SDK, any framework
+## `@deepgram/agents`: any framework
 
 ```js
 import { AgentSession, AgentMicrophone, AgentPlayer } from "@deepgram/agents";
@@ -145,49 +145,47 @@ await session.connect();
 await mic.start();
 ```
 
-`AgentSession` handles the `Welcome`/`Settings`/`SettingsApplied` handshake, buffers mic frames until `SettingsApplied`, sends KeepAlive, and reconnects with jittered exponential backoff (`reconnect.maxAttempts` default 8). Runtime methods mirror the protocol: `updateListen`, `updateSpeak`, `updateThink`, `updatePrompt`, `injectUserMessage`, `injectAgentMessage`, `sendFunctionCallResponse`. Events are the protocol messages in kebab-case plus `audio`, `connecting`, `connected`, `reconnecting`, `disconnected`, `sdk-error`. `AgentMicrophone` and `AgentPlayer` expose `getInputVolume`/`getOutputVolume` and `getInput*/getOutputByteFrequencyData` for visualizers. [3]
+`AgentSession` handles the `Welcome`/`Settings`/`SettingsApplied` handshake, buffers mic frames until `SettingsApplied`, sends `KeepAlive`, and reconnects with jittered exponential backoff (`reconnect.maxAttempts` default 8). Runtime methods mirror the protocol: `updateListen`, `updateSpeak`, `updateThink`, `updatePrompt`, `injectUserMessage`, `injectAgentMessage`, `sendFunctionCallResponse`. Events are the protocol messages in kebab-case plus `audio`, `connecting`, `connected`, `reconnecting`, `disconnected`, `sdk-error`. `AgentMicrophone` and `AgentPlayer` expose `getInputVolume` and `getOutputVolume`, plus `getInputByteFrequencyData` and `getOutputByteFrequencyData`, for visualizers. [3]
 
-## Upgrading `@deepgram/react` 0.1 to 0.2
+## Upgrade `@deepgram/react` 0.1 to 0.2
 
 0.2.0 shipped 2026-09-10 and is the only breaking release so far. Its five changes: [9]
 
-1. `AgentMode` gained `"thinking"`. Fix exhaustive `switch`es and mode-to-label maps.
-2. `AgentContextValue` and the hook result types gained required members. Consuming components need no change; typed mocks, wrappers, and hand-written implementations of those interfaces do.
+1. `AgentMode` now includes `"thinking"`. Fix exhaustive `switch`es and mode-to-label maps.
+2. `AgentContextValue` and the hook result types now require new members. Consuming components need no change; typed mocks, wrappers, and hand-written implementations of those interfaces do.
 3. `registerClientTool()` now returns an unsubscribe function. Ignoring it still works; store and call it when registering outside a component lifecycle. `useAgentClientTool()` still unregisters on unmount.
 4. `useDeepgramAgent().start()` now clears `conversation` before connecting. Keep any transcript that must outlive a restart outside the hook. Manual `start()` now rejects on failure, so handle the promise; automatic and reconnect failures go to `onSdkError`.
-5. New runtime controls on `useAgentControls()`/`useAgentConversation()`/`useDeepgramAgent()` — `updatePrompt`, `sendAgentMessage`, and friends — update a connected agent without recreating the provider. `onListenUpdated`, `onPromptUpdated`, `onSpeakUpdated`, `onThinkUpdated` observe the server acknowledgement.
+5. `useAgentControls()`, `useAgentConversation()`, and `useDeepgramAgent()` now expose runtime controls, among them `updatePrompt` and `sendAgentMessage`, that update a connected agent without recreating the provider. `onListenUpdated`, `onPromptUpdated`, `onSpeakUpdated`, and `onThinkUpdated` fire when the server acknowledges the change.
 
 ## Common mistakes
 
-1. Shipping the API key to the browser. `{ auth: { apiKey } }` in client code publishes a credential anyone can bill against. Use `tokenFactory` against a route you gate. [1]
-2. `{"ttl": 30}` in the `/v1/auth/grant` body. The field is `ttl_seconds`; `ttl` is silently ignored and you get the 30-second default. Verified live 2026-09-18: `{"ttl":300}` returned `expires_in: 30`, `{"ttl_seconds":300}` returned `expires_in: 300`. The Browser Agent overview page shows `ttl`. [2]
-3. Installing `@deepgram/react@0.2.0` next to `@deepgram/ui@0.1.6` and importing the provider from one and hooks from the other. `@deepgram/ui` declares `@deepgram/react ^0.1.0`, so npm nests a second copy at 0.1.0 and you get two React contexts — hooks read the wrong one or throw "used outside AgentProvider". Verified live 2026-09-18: `ui.AgentProvider === react.AgentProvider` was `false` on that install. Fix either way: import everything from `@deepgram/ui` alone, or add `"overrides": { "@deepgram/react": "0.2.0" }` (pnpm: `overrides`; yarn: `resolutions`) — with the override, npm deduped and the identity check returned `true`.
+1. Shipping the API key to the browser. `{ auth: { apiKey } }` in client-side code publishes a credential anyone can bill against. Use `tokenFactory` against a route you gate. [1]
+2. Setting the token lifetime with `ttl` in the `/v1/auth/grant` body. The field is `ttl_seconds`. A body of `{"ttl":300}` is accepted and ignored, and the response comes back `expires_in: 30`; `{"ttl_seconds":300}` returns `expires_in: 300`. Some snippets in the browser-agent documentation still show `ttl`, so read `expires_in` in the response rather than trusting the field name you sent. [2]
+3. Installing `@deepgram/react@0.2.0` next to `@deepgram/ui@0.1.6` and importing the provider from one and the hooks from the other. `@deepgram/ui` declares `@deepgram/react ^0.1.0`, so npm nests a second copy at 0.1.0 and the two packages build separate React contexts: `AgentProvider` from `@deepgram/ui` is not the same function as `AgentProvider` from `@deepgram/react`, and a hook that reads the other context throws "used outside AgentProvider". Either import everything from `@deepgram/ui` alone, or pin one copy with `"overrides": { "@deepgram/react": "0.2.0" }` in npm, `overrides` in pnpm, or `resolutions` in yarn, which dedupes the tree and makes both imports resolve to one module. [6]
 4. Forgetting `import "@deepgram/ui/styles.css"` or the `data-dg-agent` attribute on a wrapper. Every `@deepgram/ui` token is scoped to `[data-dg-agent]`, so without it the components render unstyled. [5]
-5. Never calling `player.interrupt()` on `user-started-speaking` in a raw-SDK build. Deepgram stops generating, but your queued audio keeps talking over the caller. The React and widget layers do this for you. [3]
-6. Mismatched sample rates. `AgentPlayer`'s `sampleRate` (default 24000) must equal `audio.output.sample_rate` in your agent settings, and `AgentMicrophone`'s (default 16000) must equal `audio.input.sample_rate`. [3]
-7. Leaving `latest` in a production CDN `<script>` tag. Pin `v0.1.8`; these packages are pre-1.0 and minor releases may change interfaces. [8]
-8. Expecting client-side Silero VAD. The Browser Agent overview and JavaScript SDK pages advertise optional Silero VAD, but no VAD option or export exists in `@deepgram/agents@0.1.2` or in `deepgram/agent`'s current `main`. Turn detection comes from the server-side listen provider — a Flux model with `version: "v2"`. Open the `voice-agent` skill for that.
+5. Never calling `player.interrupt()` on `user-started-speaking` in a raw-SDK build. Deepgram stops generating, but your queued audio keeps talking over the caller. Only the raw SDK leaves this to you: `@deepgram/react`'s provider already interrupts the player on that event, and the UI and widget layers inherit it. [3][4]
+6. Mismatching sample rates. `AgentPlayer`'s `sampleRate` (default 24000) must equal `audio.output.sample_rate` in your agent settings, and `AgentMicrophone`'s (default 16000) must equal `audio.input.sample_rate`. [3]
+7. Leaving `latest` in a production CDN `<script>` tag. Pin the `v`-prefixed version; these packages are pre-1.0 and minor releases may change interfaces. [8]
+8. Expecting client-side voice activity detection. `@deepgram/agents` 0.1.2 ships no VAD export and `MicrophoneOptions` carries no VAD setting; its options are `sampleRate`, `echoCancellation`, `noiseSuppression`, and `autoGainControl`. Turn detection is server-side, decided by Deepgram's Flux STT listen model (`version: "v2"`). The `voice-agent` skill covers it. [3]
 
 ## Use a different skill when
 
-- You need the WebSocket contract these packages wrap — `Settings` fields, message lifecycle, barge-in, function calling, telephony: `voice-agent` skill.
+- You need the WebSocket contract these packages wrap, meaning `Settings` fields, message lifecycle, barge-in, function calling, and telephony: `voice-agent` skill.
 - You need the full schema for any field or endpoint, including `/v1/auth/grant`: `api` skill (`references/agent.md`, `references/auth.md`).
-- You want a full runnable app to clone rather than a package to add: `starters` skill (feature `voice-agent`), or `examples` skill for third-party platforms.
+- You want a runnable app to clone, not a package to add: `starters` skill (feature `voice-agent`), or `examples` skill for third-party platforms.
 - You want a one-feature snippet: `recipes` skill.
 - You are writing the token-minting server in Python, Go, Java, .NET, or Rust: that SDK's own skills, shipped from its repository.
 - You want to find a docs page: `docs` skill. You want Deepgram docs queryable in your editor: `setup-mcp` skill.
 
 ## Sources
 
-Verified 2026-09-18. Package facts come from the published tarballs installed in a clean `node:24` container and from each repo's `main`; live API behaviour from calls against `api.deepgram.com`.
-
 1. https://developers.deepgram.com/docs/browser-agent-overview (layer choice, token factory, `Sec-WebSocket-Protocol`)
-2. https://developers.deepgram.com/reference/auth/tokens/grant and https://developers.deepgram.com/guides/fundamentals/token-based-authentication (`ttl_seconds`, default 30 s; `ttl` behaviour verified live)
-3. https://github.com/deepgram/agent (`packages/sdk`) and https://developers.deepgram.com/docs/browser-agent-javascript — exports read from `@deepgram/agents@0.1.2` `dist/index.d.ts`
-4. https://github.com/deepgram/react and https://developers.deepgram.com/docs/browser-agent-react — hooks read from `@deepgram/react@0.2.0` `dist/index.d.ts`
-5. https://github.com/deepgram/ui and https://developers.deepgram.com/docs/browser-agent-react-ui — components read from `@deepgram/ui@0.1.6` `dist/index.d.ts`; pre-1.0 wording quoted from the repo README
+2. https://developers.deepgram.com/reference/auth/tokens/grant and https://developers.deepgram.com/guides/fundamentals/token-based-authentication (`ttl_seconds`, 30-second default, Member-scope requirement)
+3. https://github.com/deepgram/agent (`packages/sdk`) and https://developers.deepgram.com/docs/browser-agent-javascript (`@deepgram/agents` exports, events, mic and player options)
+4. https://github.com/deepgram/react and https://developers.deepgram.com/docs/browser-agent-react (provider, hooks, barge-in handling)
+5. https://github.com/deepgram/ui and https://developers.deepgram.com/docs/browser-agent-react-ui (components, `[data-dg-agent]` tokens, pre-1.0 statement)
 6. `npm view <pkg> version dist-tags dependencies peerDependencies` for all four packages
-7. Runtime export check in `node:24`: `import * as ui from "@deepgram/ui"; Object.keys(ui)`
-8. https://developers.deepgram.com/docs/browser-agent-widget — CDN URL, layouts, teardown; UMD global and byte-for-byte CDN/npm match verified by download
+7. `@deepgram/ui` export list: `import * as ui from "@deepgram/ui"; Object.keys(ui)`
+8. https://developers.deepgram.com/docs/browser-agent-widget (CDN URL, six layouts, teardown, UMD global)
 9. https://github.com/deepgram/react/blob/main/MIGRATION.md
-10. https://github.com/deepgram/agent/tree/main/examples (17 examples: widget 01-07, React 10-15, UMD 20-23) and the live build at https://deepgram-agent-examples.fly.dev
+10. https://github.com/deepgram/agent/tree/main/examples (17 runnable examples: widget 01-07, React 10-15, UMD 20-23) and the hosted build at https://deepgram-agent-examples.fly.dev
