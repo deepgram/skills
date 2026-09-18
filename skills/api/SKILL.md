@@ -224,7 +224,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 ## SDK-Specific Skills
 
-This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills named `deepgram-{lang}-{product}` (e.g. `deepgram-python-speech-to-text`, `deepgram-js-voice-agent`) plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. The `deepgram-{lang}-` prefix avoids collisions when you install skills from multiple SDKs.
+This `api` skill covers the product contracts (endpoints, query params, message shapes) that are identical across SDKs. For **language-idiomatic code** — imports, async patterns, builder APIs, common errors — install the SDK-specific skills. Each Deepgram SDK publishes 7 product skills named `deepgram-{lang}-{product}` (e.g. `deepgram-python-speech-to-text`, `deepgram-js-voice-agent`). The `deepgram-{lang}-` prefix avoids collisions when you install skills from multiple SDKs.
 
 ```bash
 # Install all skills from a specific SDK
@@ -233,15 +233,14 @@ npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
 npx skills add deepgram/deepgram-java-sdk       # Java
 npx skills add deepgram/deepgram-go-sdk         # Go
 npx skills add deepgram/deepgram-rust-sdk       # Rust
-npx skills add deepgram/deepgram-swift-sdk      # Swift
-npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
-npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 
 # Or install a specific product skill from one SDK (note the deepgram-{lang}- prefix)
 npx skills add deepgram/deepgram-python-sdk --skill deepgram-python-speech-to-text
 npx skills add deepgram/deepgram-js-sdk     --skill deepgram-js-voice-agent
 ```
+
+Swift, Kotlin, and browser SDK skills are not listed because those repositories are not yet public and `npx skills add` cannot reach them. For browser work use the JavaScript / TypeScript skills — `@deepgram/sdk` runs in the browser as well as in Node.
 
 ## Related Deepgram skills
 
