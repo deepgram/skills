@@ -91,7 +91,7 @@ Releases are cut on demand after merges that change what an installed skill tell
 
 1. Adds a `## [X.Y.Z] - YYYY-MM-DD` section to `CHANGELOG.md` in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) form.
 2. Bumps `metadata.version` in `.claude-plugin/marketplace.json`.
-3. Tags the commit `deepgram-skills-vX.Y.Z` and publishes a GitHub release with the same name.
+3. Tags the commit `deepgram-skills-vX.Y.Z` and publishes a GitHub release from that tag.
 
 Publishing the release triggers `.github/workflows/context7.yml`, which refreshes the Context7 index of this repository.
 

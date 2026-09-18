@@ -131,9 +131,13 @@ Codex loads skills from `.agents/skills/` in your working directory and every di
 npx skills add deepgram/skills -a codex
 ```
 
-This writes `.agents/skills/<skill>/` for each skill you select. For a user-wide install, Codex also reads `~/.agents/skills/`; copy or symlink the skill folders there.
+This writes `.agents/skills/<skill>/` for each skill you select. Codex also reads `~/.agents/skills/` for user-wide skills, so add `-g` to install there instead of into the project:
 
-Inside Codex, run `/skills` to list what is loaded, or type `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke a skill by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working, so a line such as "Use the Deepgram skills in `.agents/skills/` for any Deepgram API work" makes the skills load on every task.
+```bash
+npx skills add deepgram/skills -a codex -g
+```
+
+Inside Codex, run `/skills` to browse and apply a skill, or type `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
 
 To give Codex the live documentation as well, add the Deepgram docs MCP server:
 
@@ -141,7 +145,7 @@ To give Codex the live documentation as well, add the Deepgram docs MCP server:
 codex mcp add deepgram-docs --url https://api.dx.deepgram.com/kapa/mcp
 ```
 
-See [Build skills](https://developers.openai.com/codex/skills) and [Custom instructions with AGENTS.md](https://developers.openai.com/codex/guides/agents-md) in the Codex documentation.
+See [Build skills](https://learn.chatgpt.com/docs/build-skills) and [Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) in the Codex documentation.
 
 ## Cursor
 
