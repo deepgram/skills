@@ -1,25 +1,41 @@
 ---
 name: setup-mcp
 description: >
-  Set up the Deepgram MCP server for your AI coding tool. Checks whether the Deepgram CLI
-  (dg/deepctl) is installed: if so, uses the local CLI MCP server (dg mcp) for full tool
-  access; otherwise offers the hosted documentation MCP or suggests installing the CLI.
-  Use whenever someone wants to install Deepgram's agentic tools, set up the MCP server,
-  or connect their editor to Deepgram.
+  Set up a Deepgram MCP server for your AI coding tool. Offers three paths: the Deepgram CLI
+  MCP proxy (dg mcp), the standalone deepgram-mcp package, and the credential-free hosted
+  documentation MCP. Use whenever someone wants to install Deepgram's agentic tools, set up
+  the MCP server, or connect their editor to Deepgram.
 ---
 
-# Install the Deepgram MCP Server
+# Install a Deepgram MCP Server
 
-You are setting up Deepgram MCP integration for the user. Follow these steps:
+You are setting up Deepgram MCP integration for the user. Follow these steps.
 
-## Step 1: Check for the Deepgram CLI
+## Step 1: Pick a path
 
-Run `dg --version` (or `deepctl --version`, or `where dg` on Windows) to check if the
-Deepgram CLI is installed.
+Three servers exist. They are not interchangeable — pick by whether the user has, or wants,
+a Deepgram API key.
 
-- **If found:** use the **local CLI MCP** (`dg mcp`) — this gives full access to Deepgram
-  tools including transcription, text-to-speech, project management, and more.
-- **If not found:** use the **hosted documentation MCP** and offer to install the CLI.
+| Path | Server | Credentials | Install footprint |
+|---|---|---|---|
+| **A** | Deepgram CLI MCP proxy (`dg mcp`) | Deepgram API key **required** | Full CLI (`deepctl`) |
+| **B** | Standalone `deepgram-mcp` | Deepgram API key **required** | One Python package |
+| **C** | Hosted docs MCP (`/_mcp/server`) | **None** | Nothing to install |
+
+Decision rule:
+
+- The user already has the CLI, or wants `dg listen` / `dg speak` / `dg init` too → **Path A**.
+- The user has an API key but wants only the MCP server, no CLI → **Path B**.
+- The user has no API key, or wants something working in one command → **Path C**.
+
+Paths A and B are the same server: `dg mcp` wraps the `deepgram-mcp` package. Both proxy
+Deepgram's developer API and fetch their tool list from Deepgram at runtime, so new tools
+appear on reconnect without a package upgrade. As of this writing that list is a single
+documentation and knowledge-source search tool (`search_deepgram_knowledge_sources`) — check
+`tools/list` in the user's client for what is live rather than promising a tool set.
+
+Paths A/B and Path C both answer Deepgram questions from documentation, so installing more
+than one is usually redundant. Path C is the only one that works with no credentials.
 
 ## Step 2: Detect the environment
 
@@ -34,14 +50,53 @@ If multiple are detected, or none are detected, ask the user which tool they wan
 ## Step 3: Ask about scope
 
 Ask the user whether they want the MCP server configured:
+
 - **For this project only** (recommended for team repos)
 - **Globally** (available in all projects)
 
-## Step 4: Install
-
 ---
 
-### If the Deepgram CLI (`dg`) IS installed — use the local CLI MCP
+## Path A — Deepgram CLI MCP proxy (`dg mcp`)
+
+### A1. Install the CLI
+
+Check first: `dg --version` (or `deepctl --version`, or `where dg` on Windows). The package is
+`deepctl` and installs three interchangeable binaries — `dg`, `deepctl`, and `deepgram`.
+
+```sh
+# macOS / Linux — Homebrew (also brings in ffmpeg and portaudio)
+brew tap deepgram/tap && brew install deepgram
+
+# macOS / Linux — install script
+curl -fsSL https://deepgram.com/install.sh | sh
+
+# pip / uv / pipx
+pip install deepctl
+uv tool install deepctl
+pipx install deepctl
+```
+
+```powershell
+# Windows — PowerShell
+iwr https://deepgram.com/install.ps1 -useb | iex
+```
+
+To upgrade, use the CLI's own updater: `dg update` (add `--check-only` to check without
+installing). If it was installed with Homebrew, `brew upgrade deepgram` also works.
+
+### A2. Authenticate — required
+
+`dg mcp` will not start without credentials. Do this before configuring any editor:
+
+```sh
+dg login                  # interactive; or dg login --api-key <KEY>
+dg whoami                 # confirm: "authenticated": true
+```
+
+`DEEPGRAM_API_KEY` in the environment works instead of `dg login`. Get a key at
+<https://console.deepgram.com>.
+
+### A3. Configure the editor
 
 #### Claude Code
 
@@ -61,6 +116,7 @@ Write or merge into the project's `.cursor/mcp.json`:
 {
   "mcpServers": {
     "deepgram": {
+      "type": "stdio",
       "command": "dg",
       "args": ["mcp"]
     }
@@ -70,14 +126,19 @@ Write or merge into the project's `.cursor/mcp.json`:
 
 #### Windsurf
 
-Write or merge into the project's `.windsurf/mcp.json`:
+Write or merge into the project's `.windsurf/mcp.json`, using the same object as Cursor above.
+
+#### Without a permanent install
+
+`uvx` and `pipx run` fetch `deepctl` on demand. Credentials still come from `dg login` or
+`DEEPGRAM_API_KEY`:
 
 ```json
 {
   "mcpServers": {
     "deepgram": {
-      "command": "dg",
-      "args": ["mcp"]
+      "command": "uvx",
+      "args": ["deepctl", "mcp"]
     }
   }
 }
@@ -85,32 +146,64 @@ Write or merge into the project's `.windsurf/mcp.json`:
 
 #### Other tools
 
-Provide the MCP server command and let them configure manually:
-
 - **Transport:** stdio
 - **Command:** `dg`
 - **Args:** `["mcp"]`
 
+`dg mcp --transport sse --port 8000` serves SSE instead, for clients that need HTTP.
+
 ---
 
-### If the Deepgram CLI is NOT installed — use the hosted docs MCP
+## Path B — Standalone `deepgram-mcp`
 
-Tell the user:
+The MCP server without the rest of the CLI. One package, one binary.
 
-> The Deepgram CLI isn't installed. You can either:
-> 1. **Install the CLI** (`pipx install deepctl`) for full Deepgram tool access, then re-run `/deepgram:setup-mcp`
-> 2. **Use the hosted MCP** for documentation queries right now
+```sh
+pip install deepgram-mcp
+export DEEPGRAM_API_KEY=your_key_here
+```
 
-If they choose the hosted MCP (or want it alongside the CLI):
+#### Claude Code
+
+```sh
+claude mcp add deepgram -- deepgram-mcp
+```
+
+#### Cursor / Windsurf
+
+Write or merge into `.cursor/mcp.json` or the Windsurf MCP config:
+
+```json
+{
+  "mcpServers": {
+    "deepgram": {
+      "command": "deepgram-mcp",
+      "env": {
+        "DEEPGRAM_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```
+
+`--api-key` overrides the environment variable, and `--transport sse --port 8000` serves SSE.
+Source: <https://github.com/deepgram/mcp>.
+
+---
+
+## Path C — Hosted documentation MCP (no credentials)
+
+Use `https://developers.deepgram.com/_mcp/server`. It answers unauthenticated, needs no API
+key, and exposes one tool, `searchDocs`, which returns documentation passages with source URLs.
 
 #### Claude Code
 
 ```sh
 # Project scope
-claude mcp add deepgram-docs --scope project --transport http https://api.dx.deepgram.com/kapa/mcp
+claude mcp add deepgram-docs --scope project --transport http https://developers.deepgram.com/_mcp/server
 
 # User/global scope
-claude mcp add deepgram-docs --transport http https://api.dx.deepgram.com/kapa/mcp
+claude mcp add deepgram-docs --transport http https://developers.deepgram.com/_mcp/server
 ```
 
 #### Cursor
@@ -122,7 +215,7 @@ Write or merge into the project's `.cursor/mcp.json`:
   "mcpServers": {
     "deepgram-docs": {
       "type": "http",
-      "url": "https://api.dx.deepgram.com/kapa/mcp"
+      "url": "https://developers.deepgram.com/_mcp/server"
     }
   }
 }
@@ -130,54 +223,77 @@ Write or merge into the project's `.cursor/mcp.json`:
 
 #### Windsurf
 
-Write or merge into the project's `.windsurf/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "deepgram-docs": {
-      "type": "http",
-      "url": "https://api.dx.deepgram.com/kapa/mcp"
-    }
-  }
-}
-```
+Write or merge into the project's `.windsurf/mcp.json`, using the same object as Cursor above.
 
 #### Other tools
 
-Provide the MCP server details and let them configure manually:
-
 - **Type:** HTTP
-- **URL:** `https://api.dx.deepgram.com/kapa/mcp`
+- **URL:** `https://developers.deepgram.com/_mcp/server`
+
+### Do not treat the kapa endpoints as credential-free
+
+`https://api.dx.deepgram.com/kapa/mcp` and `https://deepgram.mcp.kapa.ai` both exist, but both
+**require authentication** — an unauthenticated request gets HTTP 401. They are OAuth-protected
+and advertise it correctly via a `WWW-Authenticate: Bearer resource_metadata=...` header, so a
+client that implements MCP's OAuth flow can connect. A Deepgram API key passed as
+`Authorization: Token <KEY>` is **not** accepted. Never offer either URL as the zero-setup
+option; use `/_mcp/server` for that.
 
 ---
 
-## Step 5: Confirm
-
-After installation:
+## Step 4: Confirm
 
 - **Claude Code** — run `/reload-plugins` to activate immediately, no restart needed.
 - **Cursor / Windsurf / Other** — the user may need to restart or reload their tool.
 
-Then tell the user:
+Then tell the user the server is configured, and check what it actually exposes before
+describing it — have the client list its tools rather than naming tools from memory.
 
-> The Deepgram MCP server is now configured.
+For Path C, add:
 
-If using the CLI MCP (`dg mcp`), add:
-> Available tools include transcription, text-to-speech, project management, and usage
-> queries. Try asking to transcribe an audio file or convert text to speech.
-
-If using the hosted docs MCP, add:
-> Your tool can now query Deepgram's full documentation directly — try asking about API
+> Your tool can now search Deepgram's documentation directly — try asking about API
 > parameters, voice agents, or model capabilities.
 
-Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/agentic-tools) for more details.
+Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/developer-tools/agentic-tools)
+for more details.
 
 ## Troubleshooting
 
-If the MCP server fails to connect:
+**`Error: DEEPGRAM_API_KEY is not set in the configuration file (...config.yaml) or environment variable.`**
+followed by `Run deepctl login to configure the CLI with your Deepgram account.`
+→ Path A with no credentials. `dg mcp` exits 1 before serving anything. Run `dg login`, or set
+`DEEPGRAM_API_KEY`. Confirm with `dg whoami`.
 
-1. For the CLI MCP: verify `dg --version` works and `dg mcp` runs without errors. Update
-   with `pipx upgrade deepctl` or `pip install --upgrade deepctl`.
-2. For the hosted MCP: verify the URL `https://api.dx.deepgram.com/kapa/mcp` is accessible.
-3. To install the CLI: `pipx install deepctl`
+**`Error: No API key. Set DEEPGRAM_API_KEY or use --api-key.`**
+→ Path B with no credentials. Export `DEEPGRAM_API_KEY`, put it in the server's `env` block, or
+pass `--api-key`.
+
+**`! Needs authentication` in `claude mcp list`, or HTTP 401 `{"status_code":401,"detail":"Authentication required"}` / `{"error":"invalid_token"}`**
+→ You are pointed at a kapa endpoint, which is OAuth-protected. Either let the client run its
+OAuth flow, or switch to `https://developers.deepgram.com/_mcp/server`, which needs no
+credentials. An API key in an `Authorization: Token` header will not fix this.
+
+**`Server "deepgram-docs" is defined in multiple scopes with different endpoints`**
+→ An earlier setup registered `deepgram-docs` at a kapa URL in user scope, and this one added a
+different URL in project scope. OAuth tokens are stored per endpoint, so authenticating one does
+not carry over. Keep one: `claude mcp remove deepgram-docs -s user` (or `-s project`). Check for
+a pre-existing entry with `claude mcp get deepgram-docs` before adding, and pick a distinct
+server name if the user wants to keep both.
+
+**`ImportError` mentioning `streamablehttp_client` on startup**
+→ An incompatible `mcp` package. `deepgram-mcp` imports `streamablehttp_client` from
+`mcp.client.streamable_http`, which `mcp` 2.0 removed. Install into a clean environment, or pin
+`mcp>=1.0.0,<2.0.0`. Installing `deepctl` pins this for you.
+
+**The server connects but exposes fewer tools than expected**
+→ Expected. Paths A and B fetch their tool list from Deepgram at runtime, so it reflects what
+the API serves right now, not what the package version implies. Reconnect to pick up new tools.
+
+**Anything else on Path A**
+→ Verify `dg --version` works and `dg mcp` runs in a terminal without errors, then `dg update`.
+
+## Sources
+
+- Deepgram CLI — <https://github.com/deepgram/cli>
+- `deepgram-mcp` — <https://github.com/deepgram/mcp>
+- Deepgram Agentic Tools — <https://developers.deepgram.com/developer-tools/agentic-tools>

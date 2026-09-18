@@ -47,12 +47,28 @@ What do you want to build?
 
 ## 3. Clone and Run
 
-Every starter lives at `https://github.com/deepgram-starters/{framework}-{feature}`:
+Every starter lives at `https://github.com/deepgram-starters/{framework}-{feature}` — framework
+first, feature second. Clone **with submodules**; each starter vendors its browser frontend at
+`frontend/` as a git submodule, and a plain `git clone` leaves that directory empty and the app
+unrunnable:
 
 ```sh
-git clone https://github.com/deepgram-starters/{framework}-{feature}.git
+git clone --recurse-submodules https://github.com/deepgram-starters/{framework}-{feature}.git
 cd {framework}-{feature}
 ```
+
+The submodule URLs in `.gitmodules` are SSH (`git@github.com:...`), so `--recurse-submodules`
+fails with `Host key verification failed` unless the user has a GitHub SSH key. Without one,
+rewrite SSH to HTTPS for the clone:
+
+```sh
+git -c url."https://github.com/".insteadOf="git@github.com:" \
+  clone --recurse-submodules https://github.com/deepgram-starters/{framework}-{feature}.git
+```
+
+The starter's own `make init` runs `git submodule update --init --recursive` and installs
+dependencies, but it inherits the same SSH URLs — it fails identically without a key, so it is
+the path for users who **have** SSH set up, not a workaround for users who don't.
 
 Set your API key and follow the README:
 
@@ -62,24 +78,64 @@ export DEEPGRAM_API_KEY=your_key_here
 
 Get an API key at <https://console.deepgram.com>.
 
+### Or scaffold with the CLI
+
+The [Deepgram CLI](https://github.com/deepgram/cli) has a scaffolder that clones and sets up a
+starter for you, submodules included:
+
+```sh
+dg init --list                       # browse templates
+dg init --list --search python       # filter
+dg init node-transcription           # clone and set up
+dg init node-transcription --dir ./my-app --install
+```
+
+`dg init` is marked alpha and reads its own templates gallery, which is narrower than the matrix
+below — it currently carries no `flux` or `flux-tts` templates. Fall back to `git clone` for
+anything it does not list. See the `setup-mcp` skill to install the CLI.
+
+## The `{feature}-html` repos are not starters
+
+The `deepgram-starters` org also contains `transcription-html`, `live-transcription-html`,
+`text-to-speech-html`, `live-text-to-speech-html`, `text-intelligence-html`, `voice-agent-html`,
+`flux-html`, and `flux-tts-html`. **Do not clone these and do not offer them as starters.** Each
+is the shared browser frontend that the backend starters pull in as the `frontend/` submodule,
+and each README says so outright: "This is a frontend submodule - do not use directly ...
+Running this repository standalone will not work as it requires backend API endpoints to
+function properly." Clone the backend starter instead and the right frontend arrives with it.
+
+They also invert the naming rule. The starter pattern is `{framework}-{feature}`, but these are
+`{feature}-html` — and the mirror-image names do **not** exist, so do not construct them:
+`deepgram-starters/html-transcription` is a 404. There is no vanilla-HTML row in the matrix
+because there is no standalone browser starter; for browser-only work, clone the `node` starter
+for the feature you want and read its `frontend/` directory.
+
 ## Examples
 
 **"I want to build a voice agent in Python"**
-→ `git clone https://github.com/deepgram-starters/fastapi-voice-agent.git`
+→ `git clone --recurse-submodules https://github.com/deepgram-starters/fastapi-voice-agent.git`
 
 **"I need live transcription in my Node app"**
-→ `git clone https://github.com/deepgram-starters/node-live-transcription.git`
+→ `git clone --recurse-submodules https://github.com/deepgram-starters/node-live-transcription.git`
 
 **"I want to add text-to-speech to my Go service"**
-→ `git clone https://github.com/deepgram-starters/go-text-to-speech.git`
+→ `git clone --recurse-submodules https://github.com/deepgram-starters/go-text-to-speech.git`
 
 **"I want to analyze audio for sentiment in C#"**
-→ `git clone https://github.com/deepgram-starters/csharp-text-intelligence.git`
+→ `git clone --recurse-submodules https://github.com/deepgram-starters/csharp-text-intelligence.git`
 
 **"I want streaming TTS with barge-in for my Node voice agent"**
-→ `git clone https://github.com/deepgram-starters/node-flux-tts.git`
+→ `git clone --recurse-submodules https://github.com/deepgram-starters/node-flux-tts.git`
+
+**"I want a plain browser/HTML demo"**
+→ There is no standalone HTML starter. Clone `node-{feature}` and work in its `frontend/`
+directory — that is the same browser code the `{feature}-html` submodule holds.
 
 ## All Starters
+
+Every URL below is a real, published, non-archived repository, and the table is the complete
+set: 13 frameworks × 7 features, plus `flux-tts` for the five frameworks that have it. A cell
+showing `—` means that starter does not exist; don't construct the URL.
 
 | | transcription | live-transcription | text-to-speech | live-text-to-speech | text-intelligence | voice-agent | flux | flux-tts |
 |---|---|---|---|---|---|---|---|---|
