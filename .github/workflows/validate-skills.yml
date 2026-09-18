@@ -1,0 +1,78 @@
+name: Validate Skills
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-skills-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Blocking. Hermetic — no network, so it cannot flake.
+  validate:
+    name: Validate skills and manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # Parses every skills/*/SKILL.md with yaml@2.x (the parser the `skills` installer
+      # uses) and diffs marketplace.json's local plugin against the filesystem.
+      - name: Validate skills
+        run: bun run scripts/validate-skills.ts
+
+  # Blocking. First-party authoring lint from deepgram/ci-tools (skill_lint.py):
+  # description quality, inline code, allowed-tools coverage, model/effort/version.
+  # Complements the job above, which owns parse-correctness and manifest sync.
+  lint-skills:
+    name: Lint skills (ci-tools)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check out ci-tools
+        uses: actions/checkout@v4
+        with:
+          repository: deepgram/ci-tools
+          ref: v3
+          path: .ci-tools
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Lint skills
+        working-directory: .ci-tools
+        run: make lint PROJECT_DIR="$GITHUB_WORKSPACE"
+
+  # Non-blocking by design. The SDK plugins' `.agents/skills/*` paths resolve against
+  # remote github sources, so they cannot be checked from this checkout — this job asks
+  # the live repos instead. It is `continue-on-error` so a GitHub outage (or an
+  # in-flight SDK fix) never blocks a PR here; read its log to see what it found.
+  remote-sdk-skills:
+    name: Remote SDK plugin skills (report only)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Check remote SDK plugin skill paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun run scripts/validate-skills.ts --remote

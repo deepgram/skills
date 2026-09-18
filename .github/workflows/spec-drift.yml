@@ -1,0 +1,116 @@
+name: API Spec Drift
+
+# The `api` skill's references are generated from Deepgram's public OpenAPI and AsyncAPI
+# specs, which change without anything in this repo noticing — the checked-in output once
+# sat ~5 weeks behind. This job regenerates weekly and reports drift.
+#
+# REPORT ONLY. It never commits regenerated output: regeneration is a reviewed change
+# (`bun run scripts/fetch-specs.ts … && bun run scripts/generate-skills.ts`), and an
+# auto-commit would land unreviewed API copy in a skill agents read as reference.
+#
+# Known limitation: `generate-skills.ts` overwrites the reference files it emits but does
+# not prune ones it no longer emits, so a reference file for a *removed* endpoint group
+# shows up as no drift here. Additions and edits are detected. This job is deliberately
+# tolerant of that — it reports what it can see rather than asserting the tree is clean.
+
+on:
+  schedule:
+    # Mondays, 13:00 UTC.
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-drift:
+    name: Check generated api skill against live specs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # Use the .yml URLs. `dpgr.am/openapi.yaml` (.yaml) serves the marketing homepage
+      # with HTTP 200, and fetch-specs.ts only checks `response.ok`, so a .yaml typo
+      # writes HTML into specs/ and fails later at parse() with a confusing error.
+      - name: Fetch live specs
+        run: bun run scripts/fetch-specs.ts https://dpgr.am/openapi.yml https://dpgr.am/asyncapi.yml
+
+      # Cheap guard against the trap above, so a bad fetch reports as a fetch problem.
+      - name: Verify specs are YAML, not HTML
+        run: |
+          for f in specs/openapi.yml specs/asyncapi.yml; do
+            if head -c 200 "$f" | grep -qi '<!doctype html\|<html'; then
+              echo "::error::$f looks like HTML, not a spec — check the fetch URL"
+              exit 1
+            fi
+          done
+
+      - name: Regenerate api skill references
+        run: bun run scripts/generate-skills.ts
+
+      - name: Report drift
+        id: drift
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Stage first, then diff --cached. `git diff` alone ignores untracked files, so
+          # a brand-new reference file (a whole new API domain — the drift most worth
+          # knowing about) would report as clean.
+          git add -A -- skills/api/references
+
+          if git diff --cached --quiet -- skills/api/references; then
+            echo "skills/api/references is up to date with the live specs."
+            exit 0
+          fi
+
+          echo "Drift detected in skills/api/references:"
+          git diff --cached --stat -- skills/api/references
+
+          {
+            echo "## API spec drift detected"
+            echo
+            echo "\`skills/api/references/\` is behind the live specs."
+            echo
+            echo "Regenerate with:"
+            echo
+            echo '```bash'
+            echo 'bun run scripts/fetch-specs.ts https://dpgr.am/openapi.yml https://dpgr.am/asyncapi.yml'
+            echo 'bun install && bun run scripts/generate-skills.ts'
+            echo '```'
+            echo
+            echo "<details><summary>Diff stat</summary>"
+            echo
+            echo '```'
+            git diff --cached --stat -- skills/api/references
+            echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "[Workflow run]($RUN_URL)"
+          } > body.md
+
+          cat body.md >> "$GITHUB_STEP_SUMMARY"
+
+          # One rolling issue rather than a new one every week.
+          existing=$(gh issue list --state open --label spec-drift --limit 1 --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file body.md
+            echo "Commented on existing issue #$existing"
+          else
+            gh label create spec-drift --color FBCA04 --description "Generated api skill is behind the live specs" 2>/dev/null || true
+            gh issue create --title "API spec drift: skills/api/references is behind the live specs" \
+              --label spec-drift --body-file body.md
+          fi
+
+          # Fail visibly so the scheduled run is red in the Actions tab.
+          exit 1
