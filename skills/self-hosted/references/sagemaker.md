@@ -63,7 +63,7 @@ Two things are true of all three:
 1. **Authentication is AWS credentials, not a Deepgram API key.** Each transport uses the standard AWS credential chain — environment variables, shared credentials file, IAM role on EC2/ECS/Lambda. The client still requires an `apiKey` value to construct, so pass a placeholder such as `"unused"`; it is ignored.
 2. **Defaults are tuned for bursts, not for fail-fast.** Connect and acquire timeouts are raised well above the AWS SDK defaults (~2 s connect, ~10 s acquire) because opening 200–500 streams against a cold endpoint trips those defaults before the load balancer has accepted the TLS handshakes — a client-side fail-fast that looks exactly like a server problem. Transient AWS failures (throttling, pool exhaustion, transient connect/timeout) are retried internally with jittered exponential backoff, with buffered messages replayed onto the new stream so audio is not dropped. Only terminal errors (auth, validation, not-found) and budget-exhausted retries reach your code. Tighten the timeouts only if you need fail-fast behavior in a low-latency pipeline.
 
-Registry versions verified 2026-09-18:
+Published versions at the time of writing — check each registry before pinning:
 
 | SDK | Package | Latest published | Repository |
 |---|---|---|---|
@@ -75,7 +75,11 @@ All three repositories are public and MIT licensed. Check the registry for a new
 
 ### Python
 
-Requires **Python 3.12+** (an AWS SDK constraint) and `deepgram-sdk>=7.8.1,<8.0.0`. Pulls in `aws-sdk-sagemaker-runtime-http2[awscrt]` 0.11.x and `boto3`; `awscrt` is a compiled extension, so unsupported platforms need a C toolchain.
+Requires **Python 3.12+**, which *is* enforced: the package declares `requires_python >=3.12,<4.0`.
+
+Its declared dependencies are only `aws-sdk-sagemaker-runtime-http2[awscrt]>=0.11,<0.12` and `boto3`. **`deepgram-sdk` is not among them.** The `>=7.8.1,<8.0.0` range below comes from the transport README's install line, not from package metadata, so nothing stops pip from resolving an incompatible SDK alongside it — pin the SDK yourself and treat a mismatch as your problem to catch. This differs from the JS package, which declares a real `peerDependencies` entry on `@deepgram/sdk >=5.4.0` and so warns on a bad pairing.
+
+`awscrt` is a compiled extension: supported platforms get a wheel, others need a C toolchain.
 
 ```bash
 pip install "deepgram-sdk>=7.8.1,<8.0.0" deepgram-sagemaker

@@ -4,7 +4,7 @@ Single-host deployment from Deepgram's official Compose templates. Read [hardwar
 
 ## Available templates
 
-In [`deepgram/self-hosted-resources`](https://github.com/deepgram/self-hosted-resources), verified 2026-09-18:
+In [`deepgram/self-hosted-resources`](https://github.com/deepgram/self-hosted-resources):
 
 | File | Services | Notes |
 |---|---|---|
@@ -127,12 +127,15 @@ max_streams = 0        # placeholder — Engine needs a real value; ask your acc
 model_name = "flux-general-en"   # or "flux-general-multi"
 ```
 
-API configuration:
+API configuration. `api.flux.toml` ships `listen_v2 = true`, while the base `api.toml` ships `listen_v2 = false` — which is why using the Flux variant matters. `listen_v2_force_end_turn` is **not in any shipped template** — it is documented only on the [Flux self-hosted page](https://developers.deepgram.com/docs/flux-self-hosted), so add it by hand if you want it:
 
 ```toml
 [features]
 listen_v2 = true
-listen_v2_force_end_turn = true   # optional; enables the ForceEndTurn control message
+# Optional, and absent from every template in common/ — add it yourself.
+# Enables the ForceEndTurn control message so your client can end a turn
+# instead of waiting for model-detected end of speech. Omit if you don't need it.
+listen_v2_force_end_turn = true
 ```
 
 Constraints that bite:
@@ -156,18 +159,22 @@ INFO impeller::flux::prewarm: Finished prewarming Flux model
 
 Use `docker/docker-compose.flux-tts.yml` with `common/license_proxy_deploy/` configs (that template runs a License Proxy).
 
+The two `engine.flux-tts.toml` templates already set `enabled = true` and a real model `uuid`; only `max_batch_size` is a placeholder you must replace.
+
 ```toml
-# engine
+# engine.flux-tts.toml, as shipped
 [flux_tts]
 enabled = true
-uuid = "<model UUID from Deepgram>"
-max_batch_size = 0     # placeholder — Engine will not start at 0
+uuid = "f94b1bd5-5f6d-4e41-bbda-b326273386c0"   # shipped value, not a placeholder
+max_batch_size = 0   # placeholder — Engine will NOT start until this is non-zero
 
-# api
+# api.flux-tts.toml, as shipped
 [features]
 speak_v2 = true
 speak_v2_streaming = true
 ```
+
+Treat the checked-in `uuid` as the value for the release the template was cut against, not as permanent: confirm it against the release you are deploying. The template's own comment says to obtain the UUID from your account representative, and the Helm chart (`fluxTts.uuid`) and the docs page both leave it empty.
 
 - Requires image `release-260812` or later.
 - Needs at least 64 GB system RAM on the host (60 GB startup allocation).

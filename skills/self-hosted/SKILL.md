@@ -57,9 +57,9 @@ Steps:
      "https://api.deepgram.com/v1/projects/$DEEPGRAM_PROJECT_ID/self-hosted/distribution/credentials"
    ```
 
-   Verified live 2026-09-18: returns `200` with a `distribution_credentials` array. Note the hyphen in `self-hosted` — `selfhosted` returns 404.
+   Returns `200` with a `distribution_credentials` array. Note the hyphen in `self-hosted` — `selfhosted` returns 404.
 
-   **A `200` here does not mean your project has self-hosted access.** Verified live on a project with no self-hosted entitlement: the endpoint still returned `200` with an empty array rather than a `403`. The Console Self-Hosted tab in step 1 is the real entitlement check; an empty list proves nothing either way.
+   **A `200` here does not mean your project has self-hosted access.** On a project with no self-hosted entitlement the endpoint still returns `200` with an empty array rather than a `403`. The Console Self-Hosted tab in step 1 is the real entitlement check; an empty list proves nothing either way.
 
    The `POST` variant takes a `scopes` query parameter, which accepts `self-hosted:products` (the default, meaning all) or per-product scopes: `self-hosted:product:api`, `:engine`, `:license-proxy`, `:dgtools`, `:billing`, `:hotpepper`, `:metrics-server`. Only `api`, `engine`, `license-proxy`, and `billing` map to containers documented publicly; the rest are undocumented, so scope credentials to what you actually deploy. `provider` accepts `quay`.
 
@@ -78,7 +78,7 @@ To rotate or revoke credentials, use the four endpoints documented in the `api` 
 | License Proxy | `quay.io/deepgram/self-hosted-license-proxy` | Caches licensing so a license-server outage does not stop inference; can be the only container with egress | Recommended in production; access granted by Deepgram |
 | Billing | `quay.io/deepgram/self-hosted-billing` | Validates a license file locally and journals usage — **air-gapped deployments only** | Air gap only |
 
-Images are tagged by release date, for example `release-260915` (the current tag across the Docker, Podman, and Helm templates, and the Helm chart's `appVersion`, as of 2026-09-18). Pin an explicit tag; never rely on a floating one.
+Images are tagged by release date, for example `release-260915` — the tag carried across the Docker, Podman, and Helm templates and the Helm chart's `appVersion`. Check the templates for the current one. Pin an explicit tag; never rely on a floating one.
 
 Minimum viable deployment: **one API container plus one Engine container on one GPU host**, with `api.toml`, `engine.toml`, and at least one `.dg` model. The License Proxy and Billing containers are additive.
 
@@ -127,7 +127,8 @@ Be honest with anyone planning a timeline. These cannot be self-served and are n
 - **Project access to self-hosted products** — Enterprise agreement, via sales.
 - **Every `.dg` model file** — links from your account representative. This is the hard blocker: you can pull images and write configs without one, and still serve nothing.
 - **`[flux] max_streams`** — the concurrency limit per GPU. There is no published per-GPU table; the doc says to ask your account representative. Leaving it auto-calculated causes agents to hang, dropped calls, and `audio_window_end increased by more than 3 frames` in API logs.
-- **`[flux_tts] max_batch_size` and the Flux TTS model `uuid`** — no safe default exists; Engine refuses to start at `0`. Both come from your account representative.
+- **`[flux_tts] max_batch_size`** — no safe default exists; Engine refuses to start while it is `0`, which is what the shipped templates set. The right value differs substantially per GPU and comes from your account representative.
+- **The Flux TTS model `uuid`** — partly gated. The Helm chart and the docs page both use an empty placeholder, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) hardcode a real UUID, so a Compose user who downloads the template already has a working value. The template comment still says to obtain it from your account representative — confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
 - **License Proxy entitlement** — via Support.
 - **Air-gapped license file** — a one-line JSON file issued by Deepgram.
 - **Pricing** — self-hosted is a sales conversation. No figure belongs in a skill; start at [deepgram.com/pricing](https://deepgram.com/pricing) and [contact us](https://deepgram.com/contact-us/).
@@ -148,7 +149,7 @@ Hardware sizing beyond the published minimums is also a conversation: the docs r
 10. **Tearing down the only License Proxy during an upgrade.** A new instance must reach `license.deepgram.com` to start. If it cannot and the old one is already gone, every container in the environment fails to license and shuts down. Use blue-green.
 11. **Treating the mTLS license connection as broken** because `curl` or an SSL scanner errors against `license.deepgram.com`. That is correct behavior.
 12. **Deleting the billing journal volume in an air-gapped deployment.** It holds usage data you are contractually required to return. Losing it can suspend service.
-13. **Upgrading API before Engine on a TTS deployment.** `release-260115` changed API-to-Engine communication and is not backwards compatible for TTS traffic; deploy the new Engine first. STT-only deployments are unaffected.
+13. **Upgrading API before Engine on a TTS deployment.** `release-260115` changed API-to-Engine communication and is not backwards compatible for TTS traffic. The new Engine (`3.107.0-1`) is compatible with previous API versions, so it must be running before the updated API (`1.176.0`) serves requests — Engine first, then API. STT-only deployments are unaffected. Read the [January 15, 2026 changelog](https://developers.deepgram.com/changelog/2026/1/15) before any TTS upgrade; each self-hosted release has its own entry with its own ordering and minimum-driver requirements.
 
 ## Use a different skill when
 
@@ -162,7 +163,7 @@ Hardware sizing beyond the published minimums is also a conversation: the docs r
 
 ## Sources
 
-Verified 2026-09-18. Append `.md` to any `developers.deepgram.com` page for clean Markdown; [llms.txt](https://developers.deepgram.com/llms.txt) indexes all 64 self-hosted pages.
+Append `.md` to any `developers.deepgram.com` page for clean Markdown. [llms.txt](https://developers.deepgram.com/llms.txt) is the full documentation index and lists the self-hosted pages, which run to several dozen — more than this skill cites.
 
 - Introduction: https://developers.deepgram.com/docs/self-hosted-introduction
 - Deployment environments, GPU matrix, hardware minimums, firewall: https://developers.deepgram.com/docs/self-hosted-deployment-environments

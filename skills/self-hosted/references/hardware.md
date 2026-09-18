@@ -1,6 +1,6 @@
 # Hardware, GPUs, Drivers, and Network
 
-Every figure here is from Deepgram's published documentation, verified 2026-09-18. Anything not listed — concurrency targets, per-GPU `max_streams`, sizing for a specific throughput — is a Support conversation, not a guess. The docs say so explicitly and repeatedly.
+Every figure here is from Deepgram's published documentation. Anything not listed — concurrency targets, per-GPU `max_streams`, sizing for a specific throughput — is a Support conversation, not a guess. The docs say so explicitly and repeatedly.
 
 ## GPU support
 

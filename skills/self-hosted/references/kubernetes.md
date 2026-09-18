@@ -2,7 +2,7 @@
 
 The production path. Deepgram publishes and maintains the `deepgram-self-hosted` Helm chart. Read [hardware.md](hardware.md) first.
 
-Verified 2026-09-18: chart version `0.46.0`, `appVersion` `release-260915`, requires Kubernetes `>=1.28.0-0` and **Helm 3.7+**. Also listed on [Artifact Hub](https://artifacthub.io/packages/search?repo=deepgram-self-hosted).
+Chart version `0.46.0`, `appVersion` `release-260915`, requiring Kubernetes `>=1.28.0-0` and **Helm 3.7+**. Also listed on [Artifact Hub](https://artifacthub.io/packages/search?repo=deepgram-self-hosted).
 
 ## Install
 
@@ -23,7 +23,7 @@ helm rollback deepgram
 
 Upgrades are driven by bumping each component's `image.tag`.
 
-> **`release-260115` is a breaking change for TTS deployments.** API-to-Engine communication changed. Deploy the new **Engine before** the new API — the new Engine is compatible with older API versions, not the reverse. Blue-green satisfies this. STT-only deployments are unaffected.
+> **`release-260115` is a breaking change for TTS deployments.** API-to-Engine communication changed. Deploy the new **Engine before** the new API: the Engine (`3.107.0-1`) is compatible with previous API versions, so it must be running in advance of the updated API (`1.176.0`). Blue-green is one strategy that satisfies the ordering; any strategy that deploys Engine first works. STT-only deployments are unaffected. Source: the [January 15, 2026 changelog](https://developers.deepgram.com/changelog/2026/1/15), restated in the chart README.
 
 ## Two secrets you create before installing
 
@@ -87,7 +87,12 @@ Static and automatic scaling are mutually exclusive. Static is `scaling.replicas
 **Engine — hard limit vs soft limit.** This is the decision that determines your failure mode:
 
 - **Hard:** set `engine.concurrencyLimit.activeRequests` plus `scaling.auto.engine.metrics.requestCapacityRatio` (for example `0.8` scales at 80% of the limit). Accepted requests get consistent performance; surplus requests get `429 Too Many Requests` if the cluster cannot scale in time.
-- **Soft:** set `scaling.auto.engine.metrics.{speechToText,textToSpeech}.{batch,streaming}.requestsPerPod`. Nothing is rejected, but per-request performance degrades if load outruns scaling.
+- **Soft:** set a `requestsPerPod` target. The chart defines exactly three, all unset by default:
+  - `scaling.auto.engine.metrics.speechToText.batch.requestsPerPod`
+  - `scaling.auto.engine.metrics.speechToText.streaming.requestsPerPod`
+  - `scaling.auto.engine.metrics.textToSpeech.batch.requestsPerPod`
+
+  Nothing is rejected, but per-request performance degrades if load outruns scaling. **There is no `textToSpeech.streaming` metric** — the chart has no soft-limit knob for streaming TTS, and a key invented at that path is silently ignored rather than rejected. For streaming TTS use the hard limit, or `scaling.auto.engine.metrics.custom`.
 
 Pick hard when predictable latency matters more than accepting every request — which is usually true for voice agents.
 
@@ -101,12 +106,30 @@ Deepgram recommends **separate environments for batch STT, streaming STT, and TT
 
 | Product | Values |
 |---|---|
-| Flux STT | API `api.features.listenV2: true` (default `false`) |
+| Flux STT | Engine `engine.flux.enabled` (default `false`), `engine.flux.max_streams` (unset), `engine.flux.model_name` (default `flux-general-en`), **plus** API `api.features.listenV2: true` (default `false`) |
 | Flux TTS | `fluxTts.enabled`, `fluxTts.uuid`, `fluxTts.maxBatchSize`, plus `api.features.speakV2` and `api.features.speakV2Streaming` |
 | Aura-2 | `aura2.enabled`, then `aura2.english` / `aura2.spanish` / `aura2.polyglot` |
 | Voice Agent | `agent.enabled: true` (default `false`) |
 
 Helm users do not edit Engine TOML directly — the chart renders it. `fluxTts.maxBatchSize` defaults to `0` and Engine will not start until you set a real value; there is no safe default, and the right one differs substantially per GPU. Get it from your account representative, then confirm it with the `benchmarking/tts/` k6 scripts.
+
+**Flux STT is two-sided, and setting only `api.features.listenV2` is a trap.** That flag exposes the `/v2/listen` route; without `engine.flux.enabled` there is no Flux Engine behind it. Set both. Note that `max_streams` and `model_name` are genuinely snake_case, unlike the camelCase used everywhere else in the chart — copy them exactly:
+
+```yaml
+engine:
+  flux:
+    enabled: true
+    # Required for production; the chart leaves it unset. There is no published
+    # per-GPU table — get the value from your account representative. Matching
+    # the docs' convention, 0 stands in for "not yet set".
+    max_streams: 0
+    model_name: flux-general-en   # or flux-general-multi
+api:
+  features:
+    listenV2: true
+```
+
+`engine.flux` (Flux STT) and `fluxTts` (Flux TTS) are unrelated settings for different products. The chart rejects invalid combinations at install time.
 
 Flux TTS binds to a single GPU. Pin it with `fluxTts.cudaVisibleDevices` on multi-GPU nodes, or let `engine.resources.useNvidiaDevicePlugin` handle allocation. To use more GPUs, run one Engine per GPU.
 
