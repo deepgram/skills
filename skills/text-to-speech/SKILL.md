@@ -79,20 +79,23 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
   `{"type":"Interrupt","playback_offset":{"type":"time_ms","value":2340}}`. `SpeechInterrupted` returns
   `text_spoken` and `text_remaining`; feed `text_spoken` back into the LLM context. Without a
   `playback_offset` the split is omitted.
-- `{"type":"Configure","speed":1.15}` changes speed mid-session. The live docs give the accepted range
-  as `0.5` to `1.5` in `0.05` steps. The `api` skill's generated reference still lists seven values from
-  `0.85` to `1.15`. The range has changed once already, so confirm it on the client-messages page
-  before hard-coding values. Errors: `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`,
-  `SPEED_NOT_SUPPORTED`.
-- `expressivity` runs `-2` (calm) to `2` (animated), default `0`. It is beta, fixed per connection, and
+- `{"type":"Configure","speed":1.15}` changes speed mid-session. `speed` runs `0.5` to `1.5` in `0.05`
+  increments, default `1.0` (verified live 2026-09-18: `0.45` and `1.55` return "'speed' must be between
+  0.5 and 1.5", and `1.07` returns "'speed' must be provided in increments of 0.05"). Errors:
+  `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`. Note that the `api` skill's
+  generated reference is stale here and still lists seven values from `0.85` to `1.15`.
+- `expressivity` runs `-2` (calm) to `2` (animated), default `0`. Values must be whole numbers; a
+  fractional value returns `EXPRESSIVITY_INCREMENT_INVALID` and an out-of-range one
+  `EXPRESSIVITY_OUT_OF_RANGE`. It is beta, fixed per connection (`Configure` cannot change it), and
   only `0` is validated for production.
 - The socket emits raw `linear16` (default), `mulaw`, or `alaw`. Batch-only parameters (`container`,
   `bit_rate`, `callback`, `callback_method`, `priority`) and any unknown parameter fail the connection.
 - Idle sessions close after 60 seconds (`NET-0004`). Send a WebSocket Ping between quiet turns.
 - Batch: `POST https://api.deepgram.com/v2/speak?model=flux-haley-en` with `{"text": "..."}` returns one
   audio response, `mp3` by default, and accepts `opus`, `flac`, `aac`, `container`, `bit_rate`.
-- SDKs: the Python, JavaScript, and Java SDKs ship a `speak.v2` client. Other languages use the
-  WebSocket directly.
+- SDKs: every Deepgram SDK except Go ships a Flux TTS client. Python, JavaScript, and Java name it
+  `speak.v2`; .NET ships `FluxSpeakRESTClient` and `FluxSpeakWebSocketClient`; Rust ships
+  `speak::flux`. In Go, use the WebSocket directly.
 
 ## Voices
 
@@ -114,7 +117,7 @@ quote figures from memory.
    JWT from `POST https://api.deepgram.com/v1/auth/grant`. A key sent with `Bearer` returns 401.
 2. Misreading a 403. The body `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have
    access to the requested model."}` is documented for a model the project cannot use, and a live test on
-   2026-09-03 returned the same body for a misspelled model name. Before asking for access, check the
+   2026-09-18 returned the same body for a misspelled model name. Before asking for access, check the
    name against the catalogs above and against `GET https://api.deepgram.com/v1/models`, whose `tts`
    list shows the models your key can use.
 3. Parsing audio as JSON. Success bodies are bytes on both endpoints. Branch on status first.
@@ -143,8 +146,8 @@ quote figures from memory.
   follow https://developers.deepgram.com/docs/twilio-and-deepgram-tts.
 - You want the docs inside your coding tool: `setup-mcp` skill.
 - You want idiomatic code in one language: the `deepgram-{js,python,java,go,rust,dotnet}-text-to-speech`
-  skills from the SDK repositories (`npx skills add deepgram/deepgram-python-sdk`, and so on). Only the
-  Python, JavaScript, and Java SDKs expose `speak.v2` for Flux TTS.
+  skills from the SDK repositories (`npx skills add deepgram/deepgram-python-sdk`, and so on). Every SDK
+  but Go carries a Flux TTS client; see the SDK note above for what each one calls it.
 - You want Deepgram to run speech-to-text, the LLM, and TTS in one connection: `voice-agent` skill and
   `deepgram-{lang}-voice-agent`.
 - You are transcribing rather than synthesizing: `speech-to-text` skill. Note that "Flux" names both a

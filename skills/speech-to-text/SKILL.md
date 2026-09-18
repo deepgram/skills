@@ -17,7 +17,7 @@ Deepgram transcribes audio with two model families on two endpoints. Pick the fa
 
 | | Nova | Flux STT |
 |---|---|---|
-| Model names | `nova-3` (alias of `nova-3-general`), `nova-3-medical` | `flux-general-en` (English), `flux-general-multi` (10 languages) |
+| Model names | `nova-3` (alias of `nova-3-general`), `nova-3-medical`, `nova-3-pharma` | `flux-general-en` (English), `flux-general-multi` (10 languages) |
 | Endpoint | `/v1/listen`, REST and WebSocket | `/v2/listen`, WebSocket only |
 | Output | A transcript stream | `TurnInfo` events carrying turn state and a transcript per turn |
 | Turn detection | None built in; you use endpointing and your own logic | Built in: `StartOfTurn`, `EagerEndOfTurn`, `TurnResumed`, `EndOfTurn` |
@@ -48,7 +48,7 @@ Nova options you will reach for, all query parameters on `/v1/listen`:
 - `smart_format=true` adds punctuation, paragraphs, and number formatting. It turns on `punctuate`, so do not set both.
 - `diarize_model=latest` labels speakers. It replaces the deprecated `diarize=true`; a request that sets both is rejected. Streaming accepts `latest` and `v1` only.
 - `language=multi` transcribes code-switched speech across the ten Nova-3 multilingual languages. Any single language code works too; the default is `en`.
-- `keyterm=<term>` boosts up to 100 terms on Nova-3. Repeat the parameter once per term. Commas, semicolons, and `term:weight` are not rejected; the API treats the whole value as one literal term and boosts nothing.
+- `keyterm=<term>` boosts names, product terms, and jargon. It is accepted on Nova-3 and Flux only; other models return 400 and point you at `keywords`. Repeat the parameter once per term. The limit is 500 tokens across all keyterms in a request, and exceeding it fails the request with `Keyterm limit exceeded`; Deepgram's guidance is to stay well under it with the 20 to 50 terms that matter. Commas, semicolons, and `term:weight` are not rejected; the API treats the whole value as one literal term, so nothing you intended gets boosted.
 - `summarize=v2`, `sentiment=true`, `topics=true`, and `intents=true` add audio intelligence. They run on prerecorded English audio only.
 - Live streaming uses `wss://api.deepgram.com/v1/listen?model=nova-3`, the same `Authorization` header, and binary audio frames. During silence send `{"type":"KeepAlive"}` as a text frame every 3 to 5 seconds; the connection closes after 10 seconds without audio. Finish with `{"type":"CloseStream"}`.
 
@@ -74,7 +74,7 @@ Three query parameters tune turn detection, and all three can change mid-stream:
 | Parameter | Range | Default | Effect |
 |---|---|---|---|
 | `eot_threshold` | 0.5 to 1.0 | 0.7 | Confidence needed for `EndOfTurn`. `1.0` suppresses model detection. |
-| `eager_eot_threshold` | 0.3 to 0.9 | unset | Enables `EagerEndOfTurn`. Lower values fire earlier with more false starts. |
+| `eager_eot_threshold` | 0.3 to 0.9 | unset | Enables `EagerEndOfTurn`. Lower values fire earlier with more false starts. Must be less than or equal to `eot_threshold`. |
 | `eot_timeout_ms` | 500 to 60000 | 5000 | Silence that forces `EndOfTurn` regardless of confidence. |
 
 Client control messages, each a JSON text frame:
@@ -88,7 +88,7 @@ For non-English or mixed-language calls use `model=flux-general-multi`, optional
 ## Common mistakes
 
 1. `Authorization: Bearer <api key>` returns 401. API keys use `Authorization: Token <key>`. `Bearer` is only for the short-lived JWT that `POST /v1/auth/grant` issues.
-2. A 403 with `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have access to the requested model."}` comes back both for a misspelled model name and for a real model the project cannot use. Check the spelling before asking for access (verified live 2026-09-03: a made-up model name on `/v1/listen` returned exactly this body). `GET https://api.deepgram.com/v1/models` lists the public catalog; `GET /v1/projects/{project_id}/models` lists your project's models. There is no model named `nova-3-conversational`; conversational audio is Flux, `flux-general-en`. The public catalog did not list the Flux model names when checked on 2026-09-03; the Flux docs are the source for those.
+2. A 403 with `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have access to the requested model."}` comes back both for a misspelled model name and for a real model the project cannot use. Check the spelling before asking for access (verified live 2026-09-18: a made-up model name on `/v1/listen` returned exactly this body, plus a `request_id`). `GET https://api.deepgram.com/v1/models` lists the public catalog; `GET /v1/projects/{project_id}/models` lists your project's models. There is no model named `nova-3-conversational`; conversational audio is Flux, `flux-general-en`. The public catalog did not list the Flux model names when checked on 2026-09-18, so the Flux docs are the source for those.
 3. Flux on `/v1/listen` does not work, and `model=flux` is not a valid value. Use `/v2/listen` with `flux-general-en` or `flux-general-multi`.
 4. `language=en` or `language=multi` on Flux is wrong. The model name selects the language. `language_hint` is accepted only by `flux-general-multi` and returns 400 on any other model.
 5. Setting `encoding` or `sample_rate` for containerized audio (WAV, Ogg, WebM) causes errors or garbled output. Omit both and let the container declare the format.

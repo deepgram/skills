@@ -38,9 +38,7 @@ curl -s https://agent.deepgram.com/v1/agent/settings/think/models \
 # 200 {"models":[{"id":"gpt-4o-mini","name":"...","provider":"open_ai"}, ...]}
 ```
 
-This catalog endpoint answers without a key; the key is first checked at the WebSocket handshake below.
-
-Then open the WebSocket to `wss://agent.deepgram.com/v1/agent/converse` with the same `Authorization: Token <key>` header. The URL takes no query parameters; all configuration goes in the `Settings` message. [1][3] EU and AU regional hosts are listed on the Build a Voice Agent page. [1] A browser cannot set headers on a WebSocket, so mint a short-lived JWT server-side with `POST https://api.deepgram.com/v1/auth/grant` (needs a Member-scope key; 30-second TTL by default, up to 3,600 with `ttl_seconds`) and pass the token as the `Sec-WebSocket-Protocol` value on the handshake, the way the Browser Agent SDK does. The token only has to be valid at the handshake. [4]
+Then open the WebSocket to `wss://agent.deepgram.com/v1/agent/converse` with the same `Authorization: Token <key>` header. The URL takes no query parameters; all configuration goes in the `Settings` message. [1][3] Regional endpoints are `wss://api.eu.deepgram.com`, `wss://api.au.deepgram.com`, and `wss://api.in.deepgram.com`, each on the same `/v1/agent/converse` path. [1] A browser cannot set headers on a WebSocket, so mint a short-lived JWT server-side with `POST https://api.deepgram.com/v1/auth/grant` (needs a Member-scope key; the TTL defaults to 30 seconds and `ttl_seconds` sets it longer; tokens from this endpoint do not work with the Manage APIs) and pass the token as the `Sec-WebSocket-Protocol` value on the handshake, the way the Browser Agent SDK does. The token only has to be valid at the handshake. [4]
 
 ## Connect, configure, stream
 
@@ -86,7 +84,8 @@ Field notes, from the configure and model pages [3][6][7][8]:
 | server | `ConversationText` (`role` is `user` or `assistant`, `content`) | Show the transcript. [11] |
 | server | `AgentThinking` (`content`) | Optional status. The LLM is working, possibly choosing a function. [11] |
 | server | `FunctionCallRequest` | See the next section. [9] |
-| server | `AgentStartedSpeaking` (`total_latency`, `tts_latency`, `ttt_latency`) | The reply's audio is starting; the fields are seconds. [12] |
+| server | `AgentStartedSpeaking` | The reply's audio is starting. [12] |
+| server | `LatencyReport` | Per-turn latency breakdown, sent automatically after each turn: `stt_latency`, `ttt_token_latency`, `ttt_text_latency`, `ttt_tool_latency`, `ttt_thinking_latency`, `tts_latency`, `total_latency`. All are floats in seconds and each is optional, so read them defensively. [31] |
 | server | binary frames | Agent audio. Queue it for playback. [5] |
 | server | `AgentAudioDone` | Last chunk sent. The user may still be hearing buffered audio, so treat your output queue as the end-of-playback signal rather than this event. [11] |
 | server | `Error` / `Warning` (`code`, `description`) | `Error` ends the session; reconnect. `Warning` is informational. [13] |
@@ -112,7 +111,7 @@ During a slow call, send `InjectAgentMessage` with `behavior: "queue"` ("One mom
 
 ## Telephony
 
-Twilio Media Streams: answer the call with TwiML `<Connect><Stream url="wss://your-host/media"/>`. It is bidirectional; `<Start><Stream>` cannot carry the agent's voice. Set both `audio.input` and `audio.output` to `mulaw` at `8000` with `container: none`, base64-decode each Twilio `media` payload and send it as a binary frame, base64-encode agent audio back into Twilio `media` frames, and on `UserStartedSpeaking` send Twilio `{"event":"clear","streamSid":...}` so it drops its buffered audio. Working bridges: `deepgram-devs/twilio-voice-agent` (Python SDK) and `deepgram-devs/sts-twilio` (raw WebSocket). [20] The examples repository, which the `examples` skill routes to, has the Node version, `021-twilio-voice-agent-node`. [21]
+Twilio Media Streams: answer the call with TwiML `<Connect><Stream url="wss://your-host/media"/>`. It is bidirectional; `<Start><Stream>` cannot carry the agent's voice. Set both `audio.input` and `audio.output` to `mulaw` at `8000` with `container: none`, base64-decode each Twilio `media` payload and send it as a binary frame, base64-encode agent audio back into Twilio `media` frames, and on `UserStartedSpeaking` send Twilio `{"event":"clear","streamSid":...}` so it drops its buffered audio. Reference bridges: `deepgram-devs/twilio-voice-agent` (Python SDK, last updated August 2026) and `deepgram-devs/sts-twilio` (raw WebSocket, last updated May 2025 — read it for the protocol, not as a current dependency). [20] The examples repository, which the `examples` skill routes to, has the Node version, `021-twilio-voice-agent-node`. [21]
 
 Other platforms with Deepgram guides: Genesys Cloud CX (Audio Connector), Amazon Connect, AudioCodes LiveHub, plus inbound and outbound reference apps. [2][22] The documentation index lists no SIP guide; bring SIP calls through one of those platforms or a gateway that yields a WebSocket audio stream. [23]
 
@@ -125,7 +124,7 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 1. `Authorization: Bearer <api key>` returns 401. API keys use the `Token` scheme. `Bearer` is only for JWTs from `/v1/auth/grant`. [4][25]
 2. REST calls sent to `agent.deepgram.com`, or the agent socket opened on `api.deepgram.com`. Only `/v1/agent/*` lives on the agent host; the published OpenAPI lists the agent host first, so generated clients need an explicit base URL. [1][26]
 3. Any message before `Welcome`, audio before `SettingsApplied`, or a second `Settings`: `NON_SETTINGS_MESSAGE_BEFORE_SETTINGS` or `SETTINGS_ALREADY_APPLIED`. One `Settings` per connection; reconnect to change it. [5][13]
-4. A model name that does not exist. On `/v1/listen` and `/v1/speak` it returns the same 403 body as a model your project cannot use, `{"err_code":"INSUFFICIENT_PERMISSIONS",...}` (verified live 2026-09-03). Check `GET https://api.deepgram.com/v1/models` first. There is no model named `nova-3-conversational`; conversational STT is `flux-general-en` with `version: v2`. [27][7]
+4. A model name that does not exist. On `/v1/listen` and `/v1/speak` it returns the same 403 body as a model your project cannot use, `{"err_code":"INSUFFICIENT_PERMISSIONS",...}` (verified live 2026-09-18). Check `GET https://api.deepgram.com/v1/models` first. There is no model named `nova-3-conversational`; conversational STT is `flux-general-en` with `version: v2`. [27][7]
 5. A declared audio format that does not match the bytes: `USER_AUDIO_FORMAT`. Encoding and sample rate in `Settings` must match what you stream. [13]
 6. Parsing every frame as JSON. Agent audio is binary. The same applies to `/v1/speak` and `/v2/speak`, whose success body is audio, so branch on frame type or HTTP status before parsing. [5][26]
 7. Not stopping playback on `UserStartedSpeaking`. Deepgram already stopped generating; the leftover in your buffer (or Twilio's) is what talks over the caller. [11][20]
@@ -138,7 +137,7 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 - You want a runnable app to clone: `starters` skill, feature `voice-agent` (node, bun, deno, flask, django, fastapi, go, java, csharp, ruby, php, cpp, rust). [28]
 - You want a minimal snippet for one feature (`connect`, `custom-llm`, `custom-tts`, `function-calling`): `recipes` skill. [29]
 - You are wiring a third-party platform (Twilio, LiveKit, Pipecat, Vonage, SignalWire, CrewAI, OpenAI Agents SDK): `examples` skill. [21]
-- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`, even though its open issue #321 (filed automatically in March 2026) still asks for one; check the package before relying on it, and the raw protocol above always works. [30]
+- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`. The raw protocol above works in any language. [30]
 - You only need transcription with turn detection, or only synthesis: the SDK `conversational-stt`, `speech-to-text`, or `text-to-speech` skills.
 - You want to find a docs page: `docs` skill. You want the MCP server: `setup-mcp` skill.
 
@@ -155,7 +154,7 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 9. https://developers.deepgram.com/docs/voice-agent-function-call-request
 10. https://developers.deepgram.com/docs/voice-agent-function-call-response
 11. Server event pages: https://developers.deepgram.com/docs/voice-agent-user-started-speaking, https://developers.deepgram.com/docs/voice-agent-conversation-text, https://developers.deepgram.com/docs/voice-agent-agent-thinking, https://developers.deepgram.com/docs/voice-agent-agent-audio-done
-12. https://developers.deepgram.com/reference/voice-agent/voice-agent (AsyncAPI; `AgentStartedSpeaking` fields)
+12. https://developers.deepgram.com/reference/voice-agent/voice-agent (AsyncAPI; client and server message list)
 13. https://developers.deepgram.com/docs/voice-agent-errors-warnings
 14. https://developers.deepgram.com/docs/livekit-integration and https://developers.deepgram.com/docs/pipecat-integration
 15. https://developers.deepgram.com/docs/agent-keep-alive
@@ -166,11 +165,12 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 20. https://developers.deepgram.com/docs/twilio-and-deepgram-voice-agent
 21. https://github.com/deepgram/examples (directories `021-twilio-voice-agent-node`, `030-livekit-agents-python`, `080-pipecat-voice-pipeline-python`)
 22. https://developers.deepgram.com/docs/inbound-telephony-agent and https://developers.deepgram.com/docs/genesys-and-deepgram-voice-agent
-23. https://developers.deepgram.com/llms.txt (full docs index; no SIP entry as of 2026-09-03)
+23. https://developers.deepgram.com/llms.txt (full docs index; no SIP entry as of 2026-09-18)
 24. https://deepgram.com/pricing (Voice Agent "calculated based on websocket connection time"; TTS "per 1,000 characters of input text")
 25. https://developers.deepgram.com/reference/authentication
-26. https://developers.deepgram.com/openapi.yaml (top-level `servers` lists `https://agent.deepgram.com` before `https://api.deepgram.com`, checked 2026-09-03) and the `api` skill's "Common Mistakes" section
-27. https://developers.deepgram.com/reference/manage/models/list (live catalog checked 2026-09-03: no `nova-3-conversational`)
-28. https://developers.deepgram.com/docs/voice-agent-template-apps and https://github.com/deepgram-starters (the docs page omits Java; `java-voice-agent` exists in the org, checked 2026-09-03)
+26. https://developers.deepgram.com/openapi.yaml (top-level `servers` lists `https://agent.deepgram.com` before `https://api.deepgram.com`, checked 2026-09-18) and the `api` skill's "Common Mistakes" section
+27. https://developers.deepgram.com/reference/manage/models/list (live catalog checked 2026-09-18: no `nova-3-conversational`)
+28. https://developers.deepgram.com/docs/voice-agent-template-apps and https://github.com/deepgram-starters (the docs page omits Java; `java-voice-agent` exists in the org, checked 2026-09-18)
 29. https://github.com/deepgram/recipes/blob/main/COVERAGE.md
-30. https://github.com/deepgram/deepgram-go-sdk (`.agents/skills/deepgram-go-voice-agent`, module `github.com/deepgram/deepgram-go-sdk/v3`) and https://github.com/deepgram/deepgram-go-sdk/issues/321
+30. https://github.com/deepgram/deepgram-go-sdk (`.agents/skills/deepgram-go-voice-agent`, module `github.com/deepgram/deepgram-go-sdk/v3`, agent client at `pkg/client/agent/v1/websocket`)
+31. https://developers.deepgram.com/docs/voice-agent-latency-report
