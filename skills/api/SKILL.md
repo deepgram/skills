@@ -25,7 +25,53 @@ All API requests require authentication via API key or JWT:
 Base servers:
 
 - REST & STT/TTS WebSocket: `https://api.deepgram.com`
-- Voice Agent WebSocket: `https://agent.deepgram.com`
+- Voice Agent WebSocket **and Voice Agent REST**: `https://agent.deepgram.com`
+
+Voice Agent's REST endpoints live on the `agent.` host too, not on `api.`:
+`GET /v1/agent/settings/think/models` returns 404 on `api.deepgram.com` and 200 on
+`agent.deepgram.com`. Everything else REST stays on `api.deepgram.com`.
+
+### Regional endpoints
+
+To keep processing inside a geography, swap the host. Same API keys, same paths, same SDKs —
+only the base URL changes. Requests are never routed out of region: if the region is
+unavailable they fail rather than fall back.
+
+| Region | Host |
+|---|---|
+| EU | `api.eu.deepgram.com` |
+| Australia | `api.au.deepgram.com` |
+| India | `api.in.deepgram.com` |
+
+**The data plane is regional; the Projects management API is not.** On all three regional hosts:
+
+| Endpoint | Regional |
+|---|---|
+| `POST /v1/listen`, `wss://…/v1/listen` | Yes |
+| `wss://…/v2/listen` | Yes |
+| `POST /v1/speak`, `wss://…/v1/speak` | Yes |
+| `POST /v2/speak`, `wss://…/v2/speak` | Yes |
+| `POST /v1/read` | Yes |
+| `wss://…/v1/agent/converse` | Yes |
+| `GET /v1/models` | Yes |
+| `POST /v1/auth/grant`, `GET /v1/auth/token` | Yes |
+| `/v1/projects/*` (keys, members, usage, billing) | **No — 404** |
+
+Two host rules that catch people out:
+
+1. **Voice Agent moves onto the `api.` host regionally.** There is no `agent.eu.deepgram.com`
+   (the name does not resolve). Use `wss://api.eu.deepgram.com/v1/agent/converse`. The Agent
+   REST endpoints move with it. Globally it stays on `agent.deepgram.com`.
+2. **Keep management calls on `api.deepgram.com`.** Point a client's management calls at a
+   regional host and `/v1/projects` returns 404, so split the base URL by call type if your
+   app both transcribes and manages keys.
+
+Whisper models are not served in any of the three regions — use Nova or Flux STT models there.
+
+For Deepgram Dedicated and self-hosted hosts, see
+[Custom Endpoints](https://developers.deepgram.com/reference/custom-endpoints);
+for the full per-region feature matrix and SDK snippets, see
+[Regional Endpoints](https://developers.deepgram.com/reference/regional-endpoints).
 
 ## How Deepgram's APIs Fit Together
 
@@ -158,12 +204,12 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 | Listen v2 — STT, Flux STT (conversational) | — | `wss://api.deepgram.com/v2/listen` | [listen.md](references/listen.md) |
 | Speak v1 — TTS, Aura models | `POST /v1/speak` | `wss://api.deepgram.com/v1/speak` | [speak.md](references/speak.md) |
 | Speak v2 — TTS, Flux TTS (turn-based) | `POST /v2/speak` | `wss://api.deepgram.com/v2/speak` | [speak.md](references/speak.md) |
-| Voice Agent | `GET /v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
+| Voice Agent | `GET agent.deepgram.com/v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
 | Read (Intelligence) | `POST /v1/read` | — | [read.md](references/read.md) |
 | Models | `GET /v1/models` | — | [models.md](references/models.md) |
 | Projects | `/v1/projects/*` | — | [projects.md](references/projects.md) |
 | Auth | `POST /v1/auth/grant` | — | [auth.md](references/auth.md) |
-| Self-Hosted | `/v1/projects/*/selfhosted/*` | — | [self-hosted.md](references/self-hosted.md) |
+| Self-Hosted | `/v1/projects/*/self-hosted/*` | — | [self-hosted.md](references/self-hosted.md) |
 
 ## Common Mistakes to Avoid
 
@@ -262,3 +308,5 @@ Swift, Kotlin, and browser SDK skills are not listed because those repositories 
 - [Voice Agent TTS Models](https://developers.deepgram.com/docs/voice-agent-tts-models)
 - [Audio Intelligence](https://developers.deepgram.com/docs/audio-intelligence)
 - [Self-Hosted Deployments](https://developers.deepgram.com/docs/self-hosted-introduction)
+- [Regional Endpoints](https://developers.deepgram.com/reference/regional-endpoints)
+- [Custom Endpoints](https://developers.deepgram.com/reference/custom-endpoints)
