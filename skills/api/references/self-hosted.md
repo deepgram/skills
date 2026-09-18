@@ -1,5 +1,7 @@
 # Deepgram Self-Hosted API
 
+Self-hosted deployments — manage the distribution credentials used to pull Deepgram container images.
+
 ## Documentation
 
 - [Self-Hosted Deployments](https://developers.deepgram.com/docs/self-hosted-introduction)
