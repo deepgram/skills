@@ -33,6 +33,9 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 
 | Skill | Description |
 |-------|-------------|
+| [speech-to-text](./skills/speech-to-text) | Start here for transcription: Nova on `/v1/listen` or Flux STT on `/v2/listen`, a first request, and where to go next |
+| [text-to-speech](./skills/text-to-speech) | Start here for synthesis: Aura on `/v1/speak` or Flux TTS on `/v2/speak`, a first request, and where to go next |
+| [voice-agent](./skills/voice-agent) | Start here for a voice agent: the Voice Agent API over one WebSocket, function calling, telephony wiring, and when to use an orchestrator instead |
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
 | [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 8 features |
@@ -50,13 +53,16 @@ npx skills add deepgram/deepgram-js-sdk         # JavaScript / TypeScript
 npx skills add deepgram/deepgram-java-sdk       # Java
 npx skills add deepgram/deepgram-go-sdk         # Go
 npx skills add deepgram/deepgram-rust-sdk       # Rust
-npx skills add deepgram/deepgram-swift-sdk      # Swift
-npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
-npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 ```
 
-Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. Example names for the Python SDK:
+The Swift, Kotlin, and browser SDK repositories are not yet public, so
+`npx skills add` cannot reach them; their skills will be listed here once the
+repositories open. Until then, for browser work install the JavaScript /
+TypeScript skills above — `@deepgram/sdk` ships a browser bundle
+(`dist/browser/`) and runs in the browser as well as in Node.
+
+Each SDK ships 7 product skills named `deepgram-{lang}-{product}`. The full set for the Python SDK:
 
 - `deepgram-python-speech-to-text`
 - `deepgram-python-text-to-speech`
@@ -65,7 +71,6 @@ Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintai
 - `deepgram-python-voice-agent`
 - `deepgram-python-conversational-stt`
 - `deepgram-python-management-api`
-- `deepgram-python-maintaining-sdk`
 
 The `deepgram-{lang}-` prefix keeps names globally unique so installing skills from multiple SDKs never overwrites another SDK's skills.
 
@@ -75,7 +80,17 @@ This `deepgram/skills` repo covers product contracts (API reference, docs, start
 
 ## Any AI coding tool
 
-Works with Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [70+ others](https://github.com/vercel-labs/skills):
+Works with Claude Code, OpenAI Codex, Cursor, Windsurf, GitHub Copilot, Gemini CLI, and [70+ others](https://github.com/vercel-labs/skills).
+
+Install the skill for what you are building:
+
+```bash
+npx skills add deepgram/skills --skill speech-to-text
+npx skills add deepgram/skills --skill text-to-speech
+npx skills add deepgram/skills --skill voice-agent
+```
+
+Or install every skill in this repository:
 
 ```bash
 npx skills add deepgram/skills
@@ -103,6 +118,9 @@ Then install the Deepgram plugin:
 
 This gives you the following slash commands:
 
+- `/deepgram:speech-to-text` — Start here for transcription
+- `/deepgram:text-to-speech` — Start here for synthesis
+- `/deepgram:voice-agent` — Start here for a voice agent
 - `/deepgram:api` — Deepgram API reference
 - `/deepgram:docs` — Find the right documentation
 - `/deepgram:starters` — Clone a starter app
@@ -137,7 +155,7 @@ This writes `.agents/skills/<skill>/` for each skill you select. Codex also read
 npx skills add deepgram/skills -a codex -g
 ```
 
-Inside Codex, run `/skills` to browse and apply a skill, or type `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
+Inside Codex, run `/skills` to browse and apply a skill, or type `$speech-to-text`, `$text-to-speech`, `$voice-agent`, `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
 
 To give Codex the live documentation as well, add the Deepgram docs MCP server:
 

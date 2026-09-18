@@ -67,10 +67,9 @@ npx skills add deepgram/deepgram-java-sdk       # Java
 npx skills add deepgram/deepgram-go-sdk         # Go
 npx skills add deepgram/deepgram-rust-sdk       # Rust
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
-npx skills add deepgram/deepgram-swift-sdk      # Swift
-npx skills add deepgram/deepgram-kotlin-sdk     # Kotlin
-npx skills add deepgram/deepgram-browser-sdk    # Browser TypeScript
 ```
+
+Swift, Kotlin, and browser SDK skills are not listed because those repositories are not yet public and `npx skills add` cannot reach them. For browser work use the JavaScript / TypeScript skills — `@deepgram/sdk` runs in the browser as well as in Node.
 
 ## Related Deepgram skills
 

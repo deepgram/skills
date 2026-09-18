@@ -101,7 +101,7 @@ Get an API key at <https://console.deepgram.com>.
 
 - **Focused feature snippets** (one feature, one language, < 50 lines) → `recipes` skill → <https://github.com/deepgram/recipes>
 - **Third-party integrations** (Twilio, LiveKit, LangChain, Vercel AI SDK, Discord, etc.) → `examples` skill → <https://github.com/deepgram/examples>
-- **SDK-specific code skills** (idiomatic imports, async patterns, gotchas) → `npx skills add deepgram/deepgram-{lang}-sdk` — see the `api` skill for the full list of 9 SDKs.
+- **SDK-specific code skills** (idiomatic imports, async patterns, gotchas) → `npx skills add deepgram/deepgram-{lang}-sdk` — see the `api` skill for the 6 SDKs whose skills are publicly installable.
 
 ## Related Deepgram skills
 
