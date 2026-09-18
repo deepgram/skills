@@ -18,15 +18,17 @@ Self-hosting is gated on an Enterprise agreement. Read [Decide before you deploy
 
 ## Decide before you deploy
 
-Work top to bottom and stop at the first row that satisfies the requirement.
+Read down the table and take the first row whose requirement you actually have. If none of them apply, the hosted API is the answer.
 
 | Requirement | Answer | What you operate |
 |---|---|---|
-| None of the below | Hosted API, `api.deepgram.com` | Nothing |
-| Data must be processed in the EU, Australia, or India | Regional endpoint: `api.eu.deepgram.com`, `api.au.deepgram.com`, `api.in.deepgram.com` | Nothing — same API keys and SDKs, change the base URL only |
-| Dedicated capacity, regional control, or compliance isolation — but not your hardware | [Deepgram Dedicated](https://deepgram.com/dedicated) — `{SHORT_UID}.{REGION}.api.deepgram.com` | Nothing — existing API keys work |
-| Must run inside your AWS account, and you want AWS to handle provisioning and scaling | Amazon SageMaker via AWS Marketplace | A SageMaker Endpoint |
 | Audio may not leave your network, or you need bare metal, an air gap, or FIPS crypto | Full self-hosted containers | GPUs, drivers, containers, models, scaling |
+| Must run inside your AWS account, and you want AWS to handle provisioning and scaling | Amazon SageMaker via AWS Marketplace | A SageMaker Endpoint |
+| Dedicated capacity, regional control, or compliance isolation — but not your hardware | [Deepgram Dedicated](https://deepgram.com/dedicated) — `{SHORT_UID}.{REGION}.api.deepgram.com` | Nothing — existing API keys work |
+| Data must be processed in the EU, Australia, or India | Regional endpoint: `api.eu.deepgram.com`, `api.au.deepgram.com`, `api.in.deepgram.com` | Nothing — same API keys and SDKs, change the base URL only |
+| None of the above | Hosted API, `api.deepgram.com` | Nothing |
+
+People reach for the top row first. Most requirements are satisfied by a row further down.
 
 The three regional endpoints serve Speech-to-Text, Text-to-Speech, Voice Agent, and Text Intelligence. Confirm the current limitations at [Regional Endpoints](https://developers.deepgram.com/reference/regional-endpoints) before you promise a region to a customer.
 
@@ -55,11 +57,15 @@ Steps:
      "https://api.deepgram.com/v1/projects/$DEEPGRAM_PROJECT_ID/self-hosted/distribution/credentials"
    ```
 
-   Verified live 2026-09-18: returns `200` with `{"distribution_credentials":[...]}`. Note the hyphen in `self-hosted` — `selfhosted` returns 404.
+   Verified live 2026-09-18: returns `200` with a `distribution_credentials` array. Note the hyphen in `self-hosted` — `selfhosted` returns 404.
+
+   **A `200` here does not mean your project has self-hosted access.** Verified live on a project with no self-hosted entitlement: the endpoint still returned `200` with an empty array rather than a `403`. The Console Self-Hosted tab in step 1 is the real entitlement check; an empty list proves nothing either way.
+
+   The `POST` variant takes a `scopes` query parameter, which accepts `self-hosted:products` (the default, meaning all) or per-product scopes: `self-hosted:product:api`, `:engine`, `:license-proxy`, `:dgtools`, `:billing`, `:hotpepper`, `:metrics-server`. Only `api`, `engine`, `license-proxy`, and `billing` map to containers documented publicly; the rest are undocumented, so scope credentials to what you actually deploy. `provider` accepts `quay`.
 
 4. **Log in to Quay** on every deployment host: `docker login quay.io` (or `podman login`).
 5. **Get the model files.** Deepgram delivers encrypted `.dg` model files as download links from your account representative. They are **not** in any public repository and are not on Quay. See [Gated by a human](#gated-by-a-human).
-6. **Verify runtime licensing.** Containers hold an outbound HTTPS connection to `license.deepgram.com:443` for licensing and usage reporting. That connection uses mTLS, so probing it with `curl` or an SSL scanner produces spurious errors — that is expected, not a fault. A `401` in container logs means the API key lacks self-hosted permissions; a timeout means your egress rules do.
+6. **Verify runtime licensing.** Containers hold an outbound HTTPS connection to `license.deepgram.com:443` for licensing and usage reporting. That connection uses mTLS, so probing it with `curl` or an SSL scanner produces spurious errors — that is expected, not a fault. A `401` in container logs means the API key lacks self-hosted permissions; a timeout means your firewall is blocking the egress.
 
 To rotate or revoke credentials, use the four endpoints documented in the `api` skill's `references/self-hosted.md`.
 
@@ -98,7 +104,8 @@ Self-hosted is not a mirror of the hosted API. Newer models exist self-hosted bu
 | Product | Self-hosted? | Enable with | Minimum image | Co-residency |
 |---|---|---|---|---|
 | Nova-3 / Nova-2 STT (`/v1/listen`) | Yes | Default | — | Shares an Engine with other Nova models |
-| Aura / Aura-2 TTS (`/v1/speak`) | Yes | `aura2.enabled` (Helm) | — | Dedicated TTS node recommended |
+| Aura-1 TTS (`/v1/speak`) | Yes | Default — model files only | — | Dedicated TTS node recommended |
+| Aura-2 TTS (`/v1/speak`) | Yes | `aura2.enabled` plus a language block (Helm) | — | Two GPUs per Engine; dedicated TTS node |
 | Flux STT (`/v2/listen`) | Yes | Engine `[flux] enabled`; API `[features] listen_v2` | `release-251015` | **Dedicated Engine.** Cannot share with any other model |
 | Flux TTS (`/v2/speak`) | Yes | Engine `[flux_tts] enabled`; API `[features] speak_v2`, `speak_v2_streaming` | `release-260812` | **Dedicated Engine.** Engine refuses to start if Aura is also configured |
 | Voice Agent (`/v1/agent/converse`) | Yes | `agent.enabled` (Helm) | — | Needs STT and TTS Engines running alongside the API |

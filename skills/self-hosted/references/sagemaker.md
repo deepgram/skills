@@ -152,11 +152,11 @@ Examples: `examples/stt.mjs`, `tts.mjs`, `flux.mjs`, `flux-tts.mjs`, `live-mic.m
 
 ### Java
 
-Requires **Java 11+** and Deepgram Java SDK **v0.4.0+** — the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption.
+Requires **Java 11+** and Deepgram Java SDK **v0.4.0+** — the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.10.0`, which satisfies the floor. Pin deliberately and test the pairing.
 
 ```groovy
 dependencies {
-    implementation 'com.deepgram:deepgram-java-sdk:0.10.0'
+    implementation 'com.deepgram:deepgram-java-sdk:0.4.0'
     implementation 'com.deepgram:deepgram-sagemaker:0.1.3'
 }
 ```
