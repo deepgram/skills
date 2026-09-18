@@ -80,10 +80,9 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
   `text_spoken` and `text_remaining`; feed `text_spoken` back into the LLM context. Without a
   `playback_offset` the split is omitted.
 - `{"type":"Configure","speed":1.15}` changes speed mid-session. `speed` runs `0.5` to `1.5` in `0.05`
-  increments, default `1.0` (verified live 2026-09-18: `0.45` and `1.55` return "'speed' must be between
-  0.5 and 1.5", and `1.07` returns "'speed' must be provided in increments of 0.05"). Errors:
-  `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`. Note that the `api` skill's
-  generated reference is stale here and still lists seven values from `0.85` to `1.15`.
+  increments, default `1.0`. `0.45` and `1.55` return `'speed' must be between 0.5 and 1.5`, and
+  `1.07` returns `'speed' must be provided in increments of 0.05`. Errors:
+  `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`.
 - `expressivity` runs `-2` (calm) to `2` (animated), default `0`. Values must be whole numbers; a
   fractional value returns `EXPRESSIVITY_INCREMENT_INVALID` and an out-of-range one
   `EXPRESSIVITY_OUT_OF_RANGE`. It is beta, fixed per connection (`Configure` cannot change it), and
@@ -116,8 +115,8 @@ quote figures from memory.
 1. Wrong auth scheme. API keys go in `Authorization: Token <key>`. `Bearer` is only for the short-lived
    JWT from `POST https://api.deepgram.com/v1/auth/grant`. A key sent with `Bearer` returns 401.
 2. Misreading a 403. The body `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have
-   access to the requested model."}` is documented for a model the project cannot use, and a live test on
-   2026-09-18 returned the same body for a misspelled model name. Before asking for access, check the
+   access to the requested model."}` comes back both for a model the project cannot use and for a
+   misspelled model name. Before asking for access, check the
    name against the catalogs above and against `GET https://api.deepgram.com/v1/models`, whose `tts`
    list shows the models your key can use.
 3. Parsing audio as JSON. Success bodies are bytes on both endpoints. Branch on status first.

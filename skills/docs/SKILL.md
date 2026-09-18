@@ -86,15 +86,20 @@ npx skills add deepgram/deepgram-rust-sdk       # Rust
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 ```
 
-Swift, Kotlin, and browser SDK skills are not listed because those repositories are not yet public and `npx skills add` cannot reach them. For browser work use the JavaScript / TypeScript skills — `@deepgram/sdk` runs in the browser as well as in Node.
+Swift and Kotlin SDK skills are not listed because those repositories are not public and `npx skills add` cannot reach them. For browser work, open the `browser-agent` skill: it covers the four Browser Agent SDK packages published on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`).
 
 ## Related Deepgram skills
 
-- `api` — consolidated REST + WebSocket API reference
-- `recipes` — minimal runnable feature snippets per language
-- `examples` — full integration examples with third-party platforms
-- `starters` — runnable starter apps (framework × feature)
-- `setup-mcp` — Deepgram MCP server installation
+- `api`: consolidated REST + WebSocket API reference
+- `recipes`: minimal runnable feature snippets per language
+- `examples`: full integration examples with third-party platforms
+- `starters`: runnable starter apps (framework × feature)
+- `audio-intelligence`: the `/v1/listen` analysis parameters
+- `text-intelligence`: `POST /v1/read` for text you already have
+- `browser-agent`: running a voice agent in a browser
+- `cli`: `deepctl` for shell and CI work
+- `self-hosted`: running Deepgram on your own GPUs
+- `setup-mcp`: Deepgram MCP server installation
 
 ## MCP Server
 
