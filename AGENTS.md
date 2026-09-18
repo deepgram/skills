@@ -12,7 +12,7 @@ voice agent, and audio intelligence APIs correctly.
 
 | Path | Purpose |
 |------|---------|
-| `skills/` | The six shipped skills: `api`, `docs`, `starters`, `recipes`, `examples`, `setup-mcp` |
+| `skills/` | The 14 shipped skills: `api`, `audio-intelligence`, `browser-agent`, `cli`, `docs`, `examples`, `recipes`, `self-hosted`, `setup-mcp`, `speech-to-text`, `starters`, `text-intelligence`, `text-to-speech`, `voice-agent`. `api` and `self-hosted` are the only two that carry a `references/` folder, and only `api`'s is generated |
 | `template/` | Starting point for a new skill (`SKILL.md` with YAML frontmatter) |
 | `scripts/` | `fetch-specs.ts` and `generate-skills.ts` — regenerate the `api` skill from the public OpenAPI and AsyncAPI specs |
 | `.claude-plugin/` | Claude Code plugin-marketplace manifest — `metadata.version` is the released version, and `plugins[0].skills` is the list the installer reads |

@@ -36,12 +36,17 @@ Some skills are hand-written, others are generated from Deepgram's [OpenAPI](htt
 | [speech-to-text](./skills/speech-to-text) | Start here for transcription: Nova on `/v1/listen` or Flux STT on `/v2/listen`, a first request, and where to go next |
 | [text-to-speech](./skills/text-to-speech) | Start here for synthesis: Aura on `/v1/speak` or Flux TTS on `/v2/speak`, a first request, and where to go next |
 | [voice-agent](./skills/voice-agent) | Start here for a voice agent: the Voice Agent API over one WebSocket, function calling, telephony wiring, and when to use an orchestrator instead |
+| [audio-intelligence](./skills/audio-intelligence) | Analyze audio, not just transcribe it: `summarize`, `sentiment`, `topics`, `intents`, and `detect_entities` as parameters on `/v1/listen` |
+| [text-intelligence](./skills/text-intelligence) | Analyze text you already have with the Read API: one `POST /v1/read` with `summarize`, `sentiment`, `topics`, and `intents` |
+| [browser-agent](./skills/browser-agent) | Run a voice agent in the browser with the Browser Agent SDK: `@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, and `@deepgram/agents-widget` |
 | [api](./skills/api) | Full API reference for all Deepgram REST and WebSocket APIs, generated from OpenAPI and AsyncAPI specs |
 | [docs](./skills/docs) | Find the right Deepgram documentation for any task |
 | [starters](./skills/starters) | Clone a ready-to-run demo app in your language and start building — 13 frameworks, 8 features |
 | [recipes](./skills/recipes) | Focused runnable recipes for one feature × one language — minimal working code (< 50 lines) |
 | [examples](./skills/examples) | Integration examples with third-party platforms (Twilio, LiveKit, LangChain, Vercel AI SDK, etc.) |
+| [cli](./skills/cli) | Drive Deepgram from the terminal with `deepctl`: install, auth, `dg listen`, `dg speak`, `dg init`, and where to reach for the API instead |
 | [setup-mcp](./skills/setup-mcp) | Set up the Deepgram MCP server for querying docs directly from your AI coding tool |
+| [self-hosted](./skills/self-hosted) | Run Deepgram on your own GPUs: licensing, container credentials, and per-target guidance for Docker/Podman, Kubernetes, and Amazon SageMaker |
 
 ## SDK-Specific Skills
 
@@ -56,11 +61,13 @@ npx skills add deepgram/deepgram-rust-sdk       # Rust
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 ```
 
-The Swift, Kotlin, and browser SDK repositories are not yet public, so
-`npx skills add` cannot reach them; their skills will be listed here once the
-repositories open. Until then, for browser work install the JavaScript /
-TypeScript skills above — `@deepgram/sdk` ships a browser bundle
-(`dist/browser/`) and runs in the browser as well as in Node.
+The Swift and Kotlin SDK repositories are not public, so `npx skills add`
+cannot reach them; their skills will be listed here once the repositories open.
+
+For browser work, use the `browser-agent` skill listed above. It covers the
+four Browser Agent SDK packages published on npm:
+`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, and
+`@deepgram/agents-widget`.
 
 Each SDK ships 7 product skills named `deepgram-{lang}-{product}`. The full set for the Python SDK:
 
@@ -118,15 +125,20 @@ Then install the Deepgram plugin:
 
 This gives you the following slash commands:
 
-- `/deepgram:speech-to-text` — Start here for transcription
-- `/deepgram:text-to-speech` — Start here for synthesis
-- `/deepgram:voice-agent` — Start here for a voice agent
-- `/deepgram:api` — Deepgram API reference
-- `/deepgram:docs` — Find the right documentation
-- `/deepgram:starters` — Clone a starter app
-- `/deepgram:recipes` — Focused runnable recipes for one feature × one language
-- `/deepgram:examples` — Integration examples with third-party platforms
-- `/deepgram:setup-mcp` — Set up the Deepgram MCP server
+- `/deepgram:speech-to-text`: Start here for transcription
+- `/deepgram:text-to-speech`: Start here for synthesis
+- `/deepgram:voice-agent`: Start here for a voice agent
+- `/deepgram:audio-intelligence`: Analyze audio on `/v1/listen`
+- `/deepgram:text-intelligence`: Analyze text with the Read API
+- `/deepgram:browser-agent`: Run a voice agent in the browser
+- `/deepgram:api`: Deepgram API reference
+- `/deepgram:docs`: Find the right documentation
+- `/deepgram:starters`: Clone a starter app
+- `/deepgram:recipes`: Focused runnable recipes for one feature × one language
+- `/deepgram:examples`: Integration examples with third-party platforms
+- `/deepgram:cli`: Drive Deepgram from the terminal with `deepctl`
+- `/deepgram:setup-mcp`: Set up the Deepgram MCP server
+- `/deepgram:self-hosted`: Run Deepgram on your own GPUs
 
 You can also install SDK-specific skill plugins from the same marketplace:
 
@@ -155,13 +167,20 @@ This writes `.agents/skills/<skill>/` for each skill you select. Codex also read
 npx skills add deepgram/skills -a codex -g
 ```
 
-Inside Codex, run `/skills` to browse and apply a skill, or type `$speech-to-text`, `$text-to-speech`, `$voice-agent`, `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, or `$setup-mcp` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
+Inside Codex, run `/skills` to browse and apply a skill, or type `$speech-to-text`, `$text-to-speech`, `$voice-agent`, `$audio-intelligence`, `$text-intelligence`, `$browser-agent`, `$api`, `$docs`, `$starters`, `$recipes`, `$examples`, `$cli`, `$setup-mcp`, or `$self-hosted` to invoke one by name. Codex also picks a skill on its own when your task matches its description. Codex reads a project's `AGENTS.md` before working. Use it to tell Codex when to use the Deepgram skills already installed in `.agents/skills/`.
 
-To give Codex the live documentation as well, add the Deepgram docs MCP server:
+To give Codex the live documentation as well, add the Deepgram docs MCP server.
+`api.dx.deepgram.com/kapa/mcp` rejects an unauthenticated request with HTTP 401
+and accepts a Deepgram API key as a bearer token, so pass the key through
+`--bearer-token-env-var`:
 
 ```bash
-codex mcp add deepgram-docs --url https://api.dx.deepgram.com/kapa/mcp
+codex mcp add deepgram-docs --url https://api.dx.deepgram.com/kapa/mcp \
+  --bearer-token-env-var DEEPGRAM_API_KEY
 ```
+
+`https://developers.deepgram.com/_mcp/server` needs no credential at all. The
+`setup-mcp` skill covers every path and the tools each one exposes.
 
 See [Build skills](https://learn.chatgpt.com/docs/build-skills) and [Custom instructions with AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md) in the Codex documentation.
 

@@ -116,7 +116,7 @@ below rather than a subset of it. It carries 44 templates with no `flux` or `flu
 it still lists `sinatra-transcription`, whose repository is archived; and it lists `nextjs-*`
 templates that now redirect out of `deepgram-starters` to `deepgram-devs`, which is why there is
 no `nextjs` row below. Treat the matrix as authoritative and fall back to `git clone`. See the
-`setup-mcp` skill to install the CLI.
+`cli` skill for installing `deepctl` and for the rest of `dg init`.
 
 ## The `{feature}-html` repos are not starters
 
@@ -187,8 +187,9 @@ showing `—` means that starter does not exist; don't construct the URL.
 
 ## Related Deepgram skills
 
-- `api` — consolidated REST + WebSocket API reference
-- `recipes` — minimal runnable feature snippets per language
-- `examples` — full integration examples with third-party platforms
-- `docs` — documentation finder
-- `setup-mcp` — Deepgram MCP server installation
+- `api`: consolidated REST + WebSocket API reference
+- `recipes`: minimal runnable feature snippets per language
+- `examples`: full integration examples with third-party platforms
+- `docs`: documentation finder
+- `cli`: `deepctl`, including `dg init` for scaffolding a template from the terminal
+- `setup-mcp`: Deepgram MCP server installation

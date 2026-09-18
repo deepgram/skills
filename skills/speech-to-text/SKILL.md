@@ -88,7 +88,7 @@ For non-English or mixed-language calls use `model=flux-general-multi`, optional
 ## Common mistakes
 
 1. `Authorization: Bearer <api key>` returns 401. API keys use `Authorization: Token <key>`. `Bearer` is only for the short-lived JWT that `POST /v1/auth/grant` issues.
-2. A 403 with `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have access to the requested model."}` comes back both for a misspelled model name and for a real model the project cannot use. Check the spelling before asking for access (verified live 2026-09-18: a made-up model name on `/v1/listen` returned exactly this body, plus a `request_id`). `GET https://api.deepgram.com/v1/models` lists the public catalog; `GET /v1/projects/{project_id}/models` lists your project's models. There is no model named `nova-3-conversational`; conversational audio is Flux, `flux-general-en`. The public catalog did not list the Flux model names when checked on 2026-09-18, so the Flux docs are the source for those.
+2. A 403 with `{"err_code":"INSUFFICIENT_PERMISSIONS","err_msg":"Project does not have access to the requested model."}` comes back both for a misspelled model name and for a real model the project cannot use. The body carries a `request_id`. Check the spelling before asking for access. `GET https://api.deepgram.com/v1/models` lists the public catalog; `GET /v1/projects/{project_id}/models` lists your project's models. There is no model named `nova-3-conversational`; conversational audio is Flux, `flux-general-en`. The public catalog does not list the Flux model names, so the Flux docs are the source for those.
 3. Flux on `/v1/listen` does not work, and `model=flux` is not a valid value. Use `/v2/listen` with `flux-general-en` or `flux-general-multi`.
 4. `language=en` or `language=multi` on Flux is wrong. The model name selects the language. `language_hint` is accepted only by `flux-general-multi` and returns 400 on any other model.
 5. Setting `encoding` or `sample_rate` for containerized audio (WAV, Ogg, WebM) causes errors or garbled output. Omit both and let the container declare the format.
@@ -108,7 +108,9 @@ Deepgram bills speech-to-text per minute of audio. Figures change, so read them 
 - You want a one-feature snippet under 50 lines: `recipes` skill, https://github.com/deepgram/recipes.
 - You are wiring Deepgram into Twilio, LiveKit, Pipecat, LangChain, or another platform: `examples` skill.
 - You want language-idiomatic SDK code: install `deepgram-{js,python,java,go,rust,dotnet}-speech-to-text` for Nova and `deepgram-{lang}-conversational-stt` for Flux from the matching SDK repository (`npx skills add deepgram/deepgram-python-sdk`, and so on).
+- You want analysis and not just the transcript (`summarize`, `sentiment`, `topics`, `intents`, `detect_entities` on `/v1/listen`): `audio-intelligence` skill. For text you already have, `/v1/read` and the `text-intelligence` skill.
 - You want text-to-speech or a full voice agent: the `text-to-speech` or `voice-agent` skill.
+- You want a shell command rather than application code: `cli` skill.
 - You want the docs queryable from your coding tool: `setup-mcp` skill.
 
 ## Sources

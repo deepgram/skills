@@ -27,7 +27,16 @@ Deepgram runs listen, think, and speak behind one WebSocket and handles the turn
 
 Each layer re-exports the layer below, so `@deepgram/ui` alone gives you `AgentProvider`, the `@deepgram/agents` types, and all ten hooks: `useAgentClientTool`, `useAgentContext`, `useAgentControls`, `useAgentConversation`, `useAgentMicrophone`, `useAgentMode`, `useAgentPlayer`, `useAgentSession`, `useAgentState`, and `useDeepgramAgent`. [7]
 
-## Versions and stability (as of 2026-09-18)
+## Versions and stability
+
+All four are pre-1.0, and `latest` is the only dist-tag on each. `@deepgram/ui`'s README puts it plainly: "This library is pre-1.0. Interfaces may change between minor versions, and releases are cut as the library evolves rather than on a fixed schedule." So resolve the versions against the registry before you install, and resolve them again before you trust a version-specific statement anywhere below:
+
+```bash
+for p in @deepgram/agents @deepgram/agents-widget @deepgram/react @deepgram/ui; do npm view "$p" version; done
+npm view @deepgram/ui dependencies   # and @deepgram/agents-widget, to check the ranges below
+```
+
+Where the registry disagrees with this skill, the registry wins. The table below is the pinned set the export names and dependency ranges in this skill describe. [3][4][5]
 
 | Package | Version | Repo |
 |---|---|---|
@@ -35,8 +44,6 @@ Each layer re-exports the layer below, so `@deepgram/ui` alone gives you `AgentP
 | `@deepgram/agents-widget` | 0.1.8 | `deepgram/agent` (`packages/widget`) |
 | `@deepgram/react` | 0.2.0 | `deepgram/react` |
 | `@deepgram/ui` | 0.1.6 | `deepgram/ui` |
-
-All four are pre-1.0, and `latest` is the only dist-tag on each. `@deepgram/ui`'s README puts it plainly: "This library is pre-1.0. Interfaces may change between minor versions, and releases are cut as the library evolves rather than on a fixed schedule." Every export name below holds for the versions in that table. Run `npm view <pkg> version` first; where it disagrees with this table, the package wins. [3][4][5]
 
 Declared runtime dependencies, as published. `@deepgram/agents` depends on `@deepgram/sdk` 5.9.0. `@deepgram/react@0.2.0` depends on `@deepgram/agents ^0.1.2` and takes `react` and `react-dom` `>=18.0.0` as peers. `@deepgram/ui@0.1.6` depends on `@deepgram/react ^0.1.0`, `@deepgram/agents ^0.1.1`, and Radix and Tailwind helpers. `@deepgram/agents-widget@0.1.8` depends on `@deepgram/react ^0.1.0`, `@deepgram/ui ^0.1.4`, `@deepgram/agents ^0.1.2`, and `preact`, all bundled into its own build. Those `^0.1.0` ranges exclude `@deepgram/react@0.2.0`, which is what makes mistake 3 below possible. [6]
 

@@ -11,19 +11,24 @@
   "plugins": [
     {
       "name": "deepgram",
-      "description": "Deepgram skills for AI coding tools — speech-to-text, text-to-speech, and voice-agent on-ramps, API reference, documentation, starter apps, recipes, integration examples, and MCP server setup",
+      "description": "Deepgram skills for AI coding tools: speech-to-text, text-to-speech, voice-agent, audio-intelligence, text-intelligence, and browser-agent on-ramps, plus API reference, documentation, starter apps, recipes, integration examples, the CLI, MCP server setup, and self-hosted deployment",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/speech-to-text",
         "./skills/text-to-speech",
         "./skills/voice-agent",
+        "./skills/audio-intelligence",
+        "./skills/text-intelligence",
+        "./skills/browser-agent",
         "./skills/api",
         "./skills/docs",
         "./skills/starters",
         "./skills/recipes",
         "./skills/examples",
-        "./skills/setup-mcp"
+        "./skills/cli",
+        "./skills/setup-mcp",
+        "./skills/self-hosted"
       ]
     },
     {

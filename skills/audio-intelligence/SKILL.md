@@ -29,8 +29,6 @@ from one API call. This skill gets a verified request working and states the lim
 
 ## Feature matrix
 
-Verified live on 2026-09-18 against `/v1/listen`.
-
 | Parameter | Prerecorded | Streaming (`wss`) | Language |
 |---|---|---|---|
 | `summarize=v2` (or `summarize=true`) | yes | **no** | English only, enforced with a 400 |
@@ -77,7 +75,7 @@ message, next to `channel` — not inside `channel.alternatives[0]`. Same field 
 `custom_topic` and `custom_intent` (repeatable) add your own labels; `custom_topic_mode` and
 `custom_intent_mode` take `extended` (default, your labels plus the model's) or `strict` (your
 labels only). `strict` returns `"segments": []` whenever nothing matches your list, which looks
-like a broken request but is not — verified live. Start with `extended`.
+like a broken request but is not. Start with `extended`.
 
 ## Common mistakes
 

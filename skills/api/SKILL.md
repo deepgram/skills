@@ -300,7 +300,7 @@ npx skills add deepgram/deepgram-python-sdk --skill deepgram-python-speech-to-te
 npx skills add deepgram/deepgram-js-sdk     --skill deepgram-js-voice-agent
 ```
 
-Swift, Kotlin, and browser SDK skills are not listed because those repositories are not yet public and `npx skills add` cannot reach them. For browser work use the JavaScript / TypeScript skills — `@deepgram/sdk` runs in the browser as well as in Node.
+Swift and Kotlin SDK skills are not listed because those repositories are not public and `npx skills add` cannot reach them. For browser work, open the `browser-agent` skill: it covers the four Browser Agent SDK packages published on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`).
 
 ## Related Deepgram skills
 
@@ -310,6 +310,11 @@ Swift, Kotlin, and browser SDK skills are not listed because those repositories 
 | `examples` | Full integration examples with third-party platforms (Twilio, LiveKit, etc.) |
 | `starters` | Runnable starter apps (framework × feature matrix) |
 | `docs` | Navigate Deepgram documentation |
+| `audio-intelligence` | The `summarize`, `sentiment`, `topics`, `intents`, and `detect_entities` parameters on `/v1/listen` |
+| `text-intelligence` | `POST /v1/read` for text you already have |
+| `browser-agent` | The Browser Agent SDK packages for running an agent in a browser |
+| `cli` | `deepctl` for shell and CI work |
+| `self-hosted` | Running Deepgram on your own GPUs |
 | `setup-mcp` | Install the Deepgram MCP server |
 
 ## Documentation
