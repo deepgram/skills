@@ -137,18 +137,18 @@ Both model families are actively maintained and industry-leading. They solve dif
 | | Nova (`/v1/listen`) | Flux STT (`/v2/listen`) |
 |---|---|---|
 | Endpoint | `/v1/listen` | `/v2/listen` |
-| Available models | `nova-3`, `nova-2`, `nova`, `enhanced`, `base` | `flux-general-en` |
+| Available models | `nova-3` (also `nova-3-medical`, `nova-3-pharma`), `nova-2`, `nova`, `enhanced`, `base` | `flux-general-en`, `flux-general-multi` |
 | Best for | General transcription — captions, subtitles, call logs, batch | Conversational audio — voice agents, interactive assistants, turn-taking UIs |
 | Output | Continuous transcript stream | Structured turn events + transcripts (built-in turn state machine) |
 | Turn detection | Manual (`utterance_end_ms`, VAD events) | Built-in (EOT, eager-EOT, turn_index) |
 | Transports | REST + WebSocket | WebSocket only |
-| Intelligence overlays | Yes — `summarize`, `sentiment`, `topics`, `intents`, `diarize`, `redact`, etc. | No — smaller focused param set; no `smart_format` / `diarize` / `punctuate` |
+| Intelligence overlays | Yes — `summarize`, `sentiment`, `topics`, `intents`, `diarize_model`, `redact`, etc. | No — smaller focused param set; no `smart_format` / `diarize_model` / `punctuate` |
 | Mid-session reconfig | No (reconnect to change) | Yes (`Configure` message updates EOT thresholds + keyterms live) |
 
 **Pick Nova (`/v1/listen`, `model=nova-3`) when:**
 - Generating captions, subtitles, or transcripts for recorded media
 - Running batch transcription over files (REST)
-- You need analytics overlays (`summarize`, `sentiment`, `topics`, `intents`, `diarize`, `redact`)
+- You need analytics overlays (`summarize`, `sentiment`, `topics`, `intents`, `diarize_model`, `redact`)
 - You want WebSocket streaming with your own turn-detection logic
 
 **Pick Flux STT (`/v2/listen`, `model=flux-general-en`) when:**
@@ -177,7 +177,7 @@ Both TTS families are actively maintained. `/v2/speak` is a **new endpoint, not 
 | Batch encodings | `mp3`, `opus`, `flac`, `aac`, `linear16`, `mulaw`, `alaw` + `container` / `bit_rate` | Same — but batch-only; the socket rejects them |
 | Interruption | `Clear` discards the buffer, no feedback | `Interrupt` → `SpeechInterrupted` with `text_spoken` / `text_remaining` |
 | Mid-stream reconfig | No (fixed at connection) | Yes — `Configure` updates `speed` only |
-| `speed` | `0.7`–`1.5` — Aura-2, English and Spanish only | Seven values, `0.85`–`1.15` in `0.05` steps |
+| `speed` | `0.7`–`1.5` — Aura-2, English and Spanish only | `0.5`–`1.5` in `0.05` steps |
 | `expressivity` | Not supported | `-2`…`2`, default `0` (beta; fixed for the connection) |
 | Voice Agent `provider.version` | `v1` (the default when a provider is specified) | `v2` (required) |
 
@@ -215,7 +215,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 ### All APIs
 
-1. **Feature flags are query params — except for Voice Agent and the v2 mid-session updates.** For `/v1/listen`, `/v2/listen`, `/v1/speak`, and `/v2/speak`, initial options go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). Exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); `/v2/listen` supports a `Configure` message after connection to update EOT thresholds and keyterms mid-session; and `/v2/speak` supports a `Configure` message that updates `speed` only. Also note that `/v2/listen` has a much smaller param set than `/v1/listen` — flags like `smart_format`, `diarize`, and `punctuate` are not available.
+1. **Feature flags are query params — except for Voice Agent and the v2 mid-session updates.** For `/v1/listen`, `/v2/listen`, `/v1/speak`, and `/v2/speak`, initial options go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). Exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); `/v2/listen` supports a `Configure` message after connection to update EOT thresholds and keyterms mid-session; and `/v2/speak` supports a `Configure` message that updates `speed` only. Also note that `/v2/listen` has a much smaller param set than `/v1/listen` — flags like `smart_format`, `diarize_model`, and `punctuate` are not available.
 
 2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further.
 
@@ -254,19 +254,33 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
     { "agent": { "speak": { "provider": { "type": "deepgram", "version": "v2", "model": "flux-alexis-en" } } } }
     ```
 
+15. **The Voice Agent REST endpoints live on `agent.deepgram.com`, not `api.deepgram.com`.** `GET /v1/agent/settings/think/models` — the list of LLMs you can name in `agent.think.provider` — returns **404 on `api.deepgram.com`** and 200 on `agent.deepgram.com`. Same key, same path; only the host differs, so a client with one hardcoded base URL silently gets a 404 that looks like a missing feature. The three regional `api.*` hosts serve it as well.
+
 ### Flux STT model (`/v2/listen`)
 
-15. **Use `/v2/listen` and `model=flux-general-en`.** `/v1/listen` does not support Flux STT. `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
+16. **Use `/v2/listen` and a `flux-general-*` model.** Two are served: `flux-general-en` (English) and `flux-general-multi` (multilingual, and the only model that accepts `language_hint` / `language_hints`). `/v1/listen` does not support Flux STT, and `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
 
-16. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux STT supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
+17. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux STT supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
     ```json
     { "type": "Configure", "thresholds": { "eot_threshold": "0.8", "eot_timeout_ms": "3000" }, "keyterms": ["Deepgram"] }
     ```
     The server responds with `ConfigureSuccess` (echoing back applied values) or `ConfigureFailure`. Omitted threshold fields keep their current values.
 
+18. **`ForceEndTurn` outside a turn is a `Warning`, not an error — and the socket stays open.** Sending `{"type":"ForceEndTurn"}` while no turn is in progress returns `{"type":"Warning","code":"FORCE_END_TURN_NO_ACTIVE_TURN","description":"Received ForceEndTurn while no turn was active; the request was ignored."}` and the connection continues. Do not treat it as fatal or reconnect. Neither the `Warning` message nor this code is in the AsyncAPI spec yet, so `references/listen.md` cannot show them. When `ForceEndTurn` *does* land mid-turn, the resulting `TurnInfo` carries `event: "EndOfTurn"` with `trigger: "manual"` — `trigger` is `model` | `manual` | `timeout`, it appears on `EndOfTurn` and nowhere else, and it is an open enum, so tolerate values you do not recognize.
+
+### Nova diarization (`/v1/listen`)
+
+19. **Use `diarize_model`, and never send it alongside `diarize`.** `diarize` is deprecated. `diarize_model` both enables diarization and picks the version, so you do not also need `diarize=true` — and sending both fails the request: `400 "diarize_model cannot be used together with diarize or diarize_version."`. Values are `latest`, `v1`, and `v2` for batch (`latest` is currently v2), and `latest` or `v1` for streaming. When diarization is on, `metadata.diarize_info` reports which model actually ran (`{"model_uuid": …, "arch": "v2"}`), which is the only way to tell what `latest` resolved to.
+
+### Text and Audio Intelligence (`/v1/read`, `/v1/listen`)
+
+20. **`language` is required on `/v1/read`, and it is validated before anything else.** There is no default, despite what `references/read.md` says: omitting it returns `400 INVALID_QUERY_PARAMETER` — "Failed to deserialize query parameters: missing field `language`" — which masks every other problem in the request. English only — `language=multi` is rejected, and `en-US` is accepted but echoed back as `en`. Two more `/v1/read` shapes worth knowing: the JSON body takes **exactly one** of `text` or `url` (both or neither gives `PAYLOAD_ERROR`, and `url` must point at a plain-text document — audio gives `REMOTE_CONTENT_ERROR`), and it is POST-only (`GET` and a WebSocket upgrade both return 405). `summarize` on `/v1/read` accepts `v2` as well as `true`, contrary to the reference. Result paths differ per endpoint: `/v1/read` returns `results.summary.text`, `/v1/listen` returns `results.summary.short`, so code that handles both has to branch. (`sentiment` maps to `results.sentiments` on both.)
+
+21. **On the Nova streaming socket, only `detect_entities` works — and the other four fail in three different ways.** `detect_entities=true` is supported and puts `entities` at the **top level** of each `Results` message, beside `channel`, not inside `channel.alternatives[0]`. The other four are prerecorded-only: `summarize` fails the handshake with `400 "Summarization is not available for streaming."`; `topics` and `intents` fail it with `403 UNAUTHORIZED_FEATURES_REQUESTED`, which reads like a key-permissions problem even when the same key's prerecorded `topics`/`intents` calls return 200; and `sentiment` is the trap — the handshake succeeds, no error is ever sent, and sentiment simply never appears in the results.
+
 ### Authentication
 
-17. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
+22. **JWT TTL applies only to the initial handshake.** Tokens default to 30 seconds. Once the WebSocket connection is established, the token expiring does not close it — tokens are only needed for the upgrade request.
 
 ## SDK-Specific Skills
 
