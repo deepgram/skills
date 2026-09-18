@@ -13,8 +13,7 @@ You are setting up Deepgram MCP integration for the user. Follow these steps.
 
 ## Step 1: Pick a path
 
-Three servers exist. They are not interchangeable — pick by whether the user has, or wants,
-a Deepgram API key.
+Three paths exist. Pick by whether the user has, or wants, a Deepgram API key.
 
 | Path | Server | Credentials | Install footprint |
 |---|---|---|---|
@@ -27,6 +26,9 @@ Decision rule:
 - The user already has the CLI, or wants `dg listen` / `dg speak` / `dg init` too → **Path A**.
 - The user has an API key but wants only the MCP server, no CLI → **Path B**.
 - The user has no API key, or wants something working in one command → **Path C**.
+
+A key-authenticated hosted variant of Paths A/B also exists at `api.dx.deepgram.com/kapa/mcp`,
+with nothing to install — see "The kapa endpoints are not credential-free" below.
 
 Paths A and B are the same server: `dg mcp` wraps the `deepgram-mcp` package. Both proxy
 Deepgram's developer API and fetch their tool list from Deepgram at runtime, so new tools
@@ -230,14 +232,28 @@ Write or merge into the project's `.windsurf/mcp.json`, using the same object as
 - **Type:** HTTP
 - **URL:** `https://developers.deepgram.com/_mcp/server`
 
-### Do not treat the kapa endpoints as credential-free
+### The kapa endpoints are not credential-free
 
-`https://api.dx.deepgram.com/kapa/mcp` and `https://deepgram.mcp.kapa.ai` both exist, but both
-**require authentication** — an unauthenticated request gets HTTP 401. They are OAuth-protected
-and advertise it correctly via a `WWW-Authenticate: Bearer resource_metadata=...` header, so a
-client that implements MCP's OAuth flow can connect. A Deepgram API key passed as
-`Authorization: Token <KEY>` is **not** accepted. Never offer either URL as the zero-setup
-option; use `/_mcp/server` for that.
+`https://api.dx.deepgram.com/kapa/mcp` and `https://deepgram.mcp.kapa.ai` both exist, and both
+reject an unauthenticated request with HTTP 401 plus a `WWW-Authenticate: Bearer
+resource_metadata=...` header, so a client that implements MCP's OAuth flow can connect to either.
+They differ in whether a Deepgram API key works:
+
+- **`api.dx.deepgram.com/kapa/mcp` accepts a Deepgram API key.** Send it as either
+  `Authorization: Token <KEY>` or `Authorization: Bearer <KEY>` and `initialize` returns 200 from
+  `deepgram-mcp-relay`; an invalid key gets 401. `tools/list` returns the same single
+  `search_deepgram_knowledge_sources` tool as Paths A and B, so this is the hosted HTTP form of
+  the same server — useful when the user has a key but cannot install anything. Pass the key as a
+  header, or the client falls back to OAuth:
+
+  ```sh
+  claude mcp add deepgram-relay --transport http https://api.dx.deepgram.com/kapa/mcp \
+    --header "Authorization: Token $DEEPGRAM_API_KEY"
+  ```
+- **`deepgram.mcp.kapa.ai` does not.** A Deepgram API key gets 401 with either scheme. OAuth is
+  the only way in.
+
+Neither is the zero-setup option — use `/_mcp/server` for that.
 
 ---
 
@@ -269,9 +285,11 @@ followed by `Run deepctl login to configure the CLI with your Deepgram account.`
 pass `--api-key`.
 
 **`! Needs authentication` in `claude mcp list`, or HTTP 401 `{"status_code":401,"detail":"Authentication required"}` / `{"error":"invalid_token"}`**
-→ You are pointed at a kapa endpoint, which is OAuth-protected. Either let the client run its
-OAuth flow, or switch to `https://developers.deepgram.com/_mcp/server`, which needs no
-credentials. An API key in an `Authorization: Token` header will not fix this.
+→ You are pointed at a kapa endpoint with no credentials. Switch to
+`https://developers.deepgram.com/_mcp/server`, which needs none. To stay on
+`api.dx.deepgram.com/kapa/mcp`, add `--header "Authorization: Token $DEEPGRAM_API_KEY"` — that
+endpoint accepts a Deepgram API key. On `deepgram.mcp.kapa.ai` an API key does not work; let the
+client run its OAuth flow instead.
 
 **`Server "deepgram-docs" is defined in multiple scopes with different endpoints`**
 → An earlier setup registered `deepgram-docs` at a kapa URL in user scope, and this one added a

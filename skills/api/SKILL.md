@@ -25,7 +25,11 @@ All API requests require authentication via API key or JWT:
 Base servers:
 
 - REST & STT/TTS WebSocket: `https://api.deepgram.com`
-- Voice Agent WebSocket: `https://agent.deepgram.com`
+- Voice Agent WebSocket **and Voice Agent REST**: `https://agent.deepgram.com`
+
+Voice Agent's REST endpoints live on the `agent.` host too, not on `api.`:
+`GET /v1/agent/settings/think/models` returns 404 on `api.deepgram.com` and 200 on
+`agent.deepgram.com`. Everything else REST stays on `api.deepgram.com`.
 
 ### Regional endpoints
 
@@ -200,7 +204,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 | Listen v2 — STT, Flux STT (conversational) | — | `wss://api.deepgram.com/v2/listen` | [listen.md](references/listen.md) |
 | Speak v1 — TTS, Aura models | `POST /v1/speak` | `wss://api.deepgram.com/v1/speak` | [speak.md](references/speak.md) |
 | Speak v2 — TTS, Flux TTS (turn-based) | `POST /v2/speak` | `wss://api.deepgram.com/v2/speak` | [speak.md](references/speak.md) |
-| Voice Agent | `GET /v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
+| Voice Agent | `GET agent.deepgram.com/v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
 | Read (Intelligence) | `POST /v1/read` | — | [read.md](references/read.md) |
 | Models | `GET /v1/models` | — | [models.md](references/models.md) |
 | Projects | `/v1/projects/*` | — | [projects.md](references/projects.md) |

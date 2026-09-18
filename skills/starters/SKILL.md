@@ -19,10 +19,19 @@ What do you want to build?
 - **Transcribe a live stream** → `live-transcription` — real-time speech-to-text (WebSocket, Nova)
 - **Generate speech** → `text-to-speech` — send text, get audio back (REST, Aura)
 - **Stream speech** → `live-text-to-speech` — real-time text-to-audio (WebSocket, Aura)
-- **Analyze text or audio** → `text-intelligence` — sentiment, topics, intents, summaries (REST)
+- **Analyze text** → `text-intelligence` — sentiment, topics, intents, summaries over text you
+  already have (REST, `/v1/read`)
 - **Build a voice agent** → `voice-agent` — conversational AI agent (WebSocket, agent.deepgram.com)
 - **Conversational STT with turn detection** → `flux` — Deepgram Flux STT for voice agents and interactive assistants (WebSocket, `/v2/listen`)
 - **Turn-based TTS for a voice agent** → `flux-tts` — Deepgram Flux TTS, streaming synthesis with barge-in (WebSocket, `/v2/speak`)
+
+**There is no audio-intelligence starter.** `text-intelligence` is text-only — it posts text you
+already have to `/v1/read`. No `{framework}-audio-intelligence` repository exists in
+`deepgram-starters` for any framework, so don't construct those URLs. To run intelligence features
+(summarization, sentiment, topics, intents) over *audio*, they are query parameters on
+`/v1/listen`, not a separate starter: clone the `transcription` starter for your framework and add
+the parameters to its existing request. See the `api` skill for which features `/v1/listen`
+supports.
 
 **Nova vs Flux STT for speech-to-text:** use `transcription` or `live-transcription` (Nova, `/v1/listen`) for general-purpose transcription, captions, and batch workloads. Use `flux` (Flux STT, `/v2/listen`) when you need built-in turn detection for conversational audio. See the `api` skill for a full comparison.
 
@@ -48,18 +57,18 @@ What do you want to build?
 ## 3. Clone and Run
 
 Every starter lives at `https://github.com/deepgram-starters/{framework}-{feature}` — framework
-first, feature second. Clone **with submodules**; each starter vendors its browser frontend at
-`frontend/` as a git submodule, and a plain `git clone` leaves that directory empty and the app
-unrunnable:
+first, feature second. Clone **with submodules**; each starter vendors two git submodules — its
+browser frontend at `frontend/` and the shared starter contracts at `contracts/` — and a plain
+`git clone` leaves both directories empty and the app unrunnable:
 
 ```sh
 git clone --recurse-submodules https://github.com/deepgram-starters/{framework}-{feature}.git
 cd {framework}-{feature}
 ```
 
-The submodule URLs in `.gitmodules` are SSH (`git@github.com:...`), so `--recurse-submodules`
-fails with `Host key verification failed` unless the user has a GitHub SSH key. Without one,
-rewrite SSH to HTTPS for the clone:
+Both submodule URLs in `.gitmodules` are SSH (`git@github.com:...`) even though both repositories
+are public, so `--recurse-submodules` fails with `Host key verification failed` unless the user
+has a GitHub SSH key. Without one, rewrite SSH to HTTPS for the clone:
 
 ```sh
 git -c url."https://github.com/".insteadOf="git@github.com:" \
@@ -80,29 +89,46 @@ Get an API key at <https://console.deepgram.com>.
 
 ### Or scaffold with the CLI
 
-The [Deepgram CLI](https://github.com/deepgram/cli) has a scaffolder that clones and sets up a
-starter for you, submodules included:
+The [Deepgram CLI](https://github.com/deepgram/cli) has a scaffolder that finds and clones a
+starter for you:
 
 ```sh
 dg init --list                       # browse templates
 dg init --list --search python       # filter
-dg init node-transcription           # clone and set up
-dg init node-transcription --dir ./my-app --install
+dg init node-transcription           # clone into ./node-transcription
+dg init node-transcription --dir ./my-app
 ```
 
-`dg init` is marked alpha and reads its own templates gallery, which is narrower than the matrix
-below — it currently carries no `flux` or `flux-tts` templates. Fall back to `git clone` for
-anything it does not list. See the `setup-mcp` skill to install the CLI.
+**`dg init` does not solve the submodule problem.** It runs a plain clone, so `frontend/` and
+`contracts/` land empty, and it still prints `Done! … is ready` and `"status": "success"`. Adding
+`--install` runs the starter's `make check-prereqs && make init`, which hits the same SSH URLs and
+fails with `Host key verification failed` — and `dg init` reports success anyway. Without a GitHub
+SSH key, finish the checkout by hand after `dg init`:
+
+```sh
+cd my-app
+git -c url."https://github.com/".insteadOf="git@github.com:" \
+  submodule update --init --recursive
+```
+
+`dg init` is also marked alpha, and its templates gallery is a separate list from the matrix
+below rather than a subset of it. It carries 44 templates with no `flux` or `flux-tts` entries;
+it still lists `sinatra-transcription`, whose repository is archived; and it lists `nextjs-*`
+templates that now redirect out of `deepgram-starters` to `deepgram-devs`, which is why there is
+no `nextjs` row below. Treat the matrix as authoritative and fall back to `git clone`. See the
+`setup-mcp` skill to install the CLI.
 
 ## The `{feature}-html` repos are not starters
 
 The `deepgram-starters` org also contains `transcription-html`, `live-transcription-html`,
 `text-to-speech-html`, `live-text-to-speech-html`, `text-intelligence-html`, `voice-agent-html`,
 `flux-html`, and `flux-tts-html`. **Do not clone these and do not offer them as starters.** Each
-is the shared browser frontend that the backend starters pull in as the `frontend/` submodule,
-and each README says so outright: "This is a frontend submodule - do not use directly ...
-Running this repository standalone will not work as it requires backend API endpoints to
-function properly." Clone the backend starter instead and the right frontend arrives with it.
+is the shared browser frontend that a backend starter pulls in as its `frontend/` submodule —
+`node-transcription` vendors `transcription-html`, `flask-voice-agent` vendors `voice-agent-html`,
+`node-flux-tts` and `java-flux-tts` both vendor `flux-tts-html`, and so on. Seven of the eight
+say so in their own README ("This is a frontend submodule - do not use directly"); `flux-tts-html`
+carries no such warning but is vendored the same way. None of them serve an API, so none of them
+run standalone. Clone the backend starter instead and the right frontend arrives with it.
 
 They also invert the naming rule. The starter pattern is `{framework}-{feature}`, but these are
 `{feature}-html` — and the mirror-image names do **not** exist, so do not construct them:
