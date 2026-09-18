@@ -53,12 +53,13 @@ npx skills add deepgram/deepgram-rust-sdk       # Rust
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 ```
 
-Swift and Kotlin SDK repositories are not yet public; their skills will be
-listed here once the repositories open. For browser use, install the
-JavaScript / TypeScript skills above — `@deepgram/sdk` runs in the browser
-as well as Node.
+The Swift, Kotlin, and browser SDK repositories are not yet public, so
+`npx skills add` cannot reach them; their skills will be listed here once the
+repositories open. Until then, for browser work install the JavaScript /
+TypeScript skills above — `@deepgram/sdk` ships a browser bundle
+(`dist/browser/`) and runs in the browser as well as in Node.
 
-Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintainer skill `deepgram-{lang}-maintaining-sdk`. Example names for the Python SDK:
+Each SDK ships 7 product skills named `deepgram-{lang}-{product}`. The full set for the Python SDK:
 
 - `deepgram-python-speech-to-text`
 - `deepgram-python-text-to-speech`
@@ -67,7 +68,6 @@ Each SDK ships 7 product skills named `deepgram-{lang}-{product}` plus a maintai
 - `deepgram-python-voice-agent`
 - `deepgram-python-conversational-stt`
 - `deepgram-python-management-api`
-- `deepgram-python-maintaining-sdk`
 
 The `deepgram-{lang}-` prefix keeps names globally unique so installing skills from multiple SDKs never overwrites another SDK's skills.
 
