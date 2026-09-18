@@ -22,6 +22,7 @@ Agent-maintained micro-recipes showing how to use every Deepgram SDK feature acr
 - You want a full starter app with a web UI, deploy config, etc. → `starters` skill
 - You want integration with a third-party platform (Twilio, LiveKit, Vercel AI SDK, Discord, etc.) → `examples` skill
 - You want the full API contract (params, responses, message shapes) → `api` skill
+- You want a shell command rather than application code → `cli` skill
 
 ## Browse recipes
 
@@ -45,8 +46,11 @@ recipes/{language}/{product}/{version}/{recipe}/
 | Speech-to-Text — Nova (`/v1/listen`) | transcribe-url, transcribe-file, paragraphs, diarize, smart-format, utterances, summarize, sentiment, topics, intents, detect-entities, detect-language, redact, search, keywords, streaming |
 | Speech-to-Text — Flux STT (`/v2/listen`) | streaming conversational transcription, EOT / eager-EOT, mid-session `Configure`, keyterms |
 | Text-to-Speech — Aura (`/v1/speak`) | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding, bit-rate |
-| Audio Intelligence | summarize, sentiment, topics, intents, entities |
+| Audio Intelligence (`/v1/listen`) | summarize, sentiment, topics, intents, entities |
 | Voice Agents | connect, custom-llm, custom-tts, function-calling |
+| Text Analysis (`/v1/read`) | summarize, sentiment, topics, intents |
+
+Audio Intelligence and Text Analysis run the same analysis on different inputs, so pick the row by what you already have. The Audio Intelligence recipes are query parameters layered on `/v1/listen`, so the input is audio and `entities` is one of them. The Text Analysis recipes are one `POST /v1/read`, so the input is text and there is no entities recipe: `detect_entities` on `/v1/read` returns 400 `{"err_code":"INVALID_QUERY_PARAMETER","err_msg":"unknown query parameter: detect_entities"}`. Open the `audio-intelligence` skill for the first and `text-intelligence` for the second. Text Analysis recipes exist in all seven languages.
 
 Nova is the general-purpose STT family; Flux STT is designed for conversational audio and voice agents. Both are actively maintained — see the `api` skill's "Nova vs Flux STT" section for the decision guide. Note that Flux STT (`/v2/listen`) and Flux TTS (`/v2/speak`) are separate products that share the Flux name.
 
@@ -69,7 +73,7 @@ npx skills add deepgram/deepgram-rust-sdk       # Rust
 npx skills add deepgram/deepgram-dotnet-sdk     # C# / .NET
 ```
 
-Swift, Kotlin, and browser SDK skills are not listed because those repositories are not yet public and `npx skills add` cannot reach them. For browser work use the JavaScript / TypeScript skills — `@deepgram/sdk` runs in the browser as well as in Node.
+Swift and Kotlin SDK skills are not listed because those repositories are not public and `npx skills add` cannot reach them. For browser work, open the `browser-agent` skill: it covers the four Browser Agent SDK packages published on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`).
 
 ## Related Deepgram skills
 

@@ -61,7 +61,7 @@ Three accepted shapes:
 
 - `Content-Type: application/json` with `{"text": "..."}`.
 - `Content-Type: application/json` with `{"url": "..."}`, where the URL serves **plain text**.
-  Deepgram fetches it. Verified live against a 43,852-token plain-text document.
+  Deepgram fetches it.
 - `Content-Type: text/plain` with the raw text as the whole body, no JSON wrapper.
 
 Sending both `text` and `url`, or neither, returns 400 `{"err_code":"PAYLOAD_ERROR","err_msg":"Failed

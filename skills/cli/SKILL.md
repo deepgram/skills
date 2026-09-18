@@ -120,7 +120,7 @@ dg api /v1/projects
 
 It is not a substitute for `npx skills add deepgram/skills`. On 0.3.0:
 
-- It downloads four hardcoded skills from this repository, `api`, `docs`, `setup-mcp`, and `starters`, from `raw.githubusercontent.com/deepgram/skills/main`. The capability skills `speech-to-text`, `text-to-speech`, and `voice-agent`, plus `recipes` and `examples`, are never fetched.
+- It downloads four hardcoded skills from this repository, `api`, `docs`, `setup-mcp`, and `starters`, from `raw.githubusercontent.com/deepgram/skills/main`. Every other skill in the repository, including the capability on-ramps, is never fetched, and the list does not grow when the repository adds one.
 - For Claude Code it writes them to `~/.claude/commands/deepgram/*.md`, the slash-command directory at user scope, not `~/.claude/skills/`, and keeps the `name:` and `description:` skill frontmatter, which is not the slash-command schema.
 - For Codex, Gemini, and Cursor it concatenates the same four files into one blob at `~/.codex/instructions.md`, `~/.gemini/GEMINI.md`, or `~/.cursor/rules/deepctl.mdc`, wrapped in `<!-- BEGIN deepctl CLI Reference -->` markers. The blob holds no CLI command reference despite that marker.
 

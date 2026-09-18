@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-09-18
+
+### Added
+
+Six new skills, and the wiring that makes them reachable. The `deepgram` plugin goes from 9 listed skills to 14.
+
+- `speech-to-text`, `text-to-speech`, and `voice-agent` capability on-ramps, named for what a developer is building rather than for an endpoint. Each carries a first request, the Nova vs Flux STT or Aura vs Flux TTS decision, common mistakes with the exact error bodies, and a routing section (#9)
+- `audio-intelligence` skill: the five parameters layered on `/v1/listen` (`summarize`, `sentiment`, `topics`, `intents`, `detect_entities`), a per-parameter matrix of prerecorded vs streaming support, the English-only limits and the 400 that enforces them, where each result lives in the response JSON, and `custom_topic` / `custom_intent` narrowing (#12)
+- `text-intelligence` skill: `POST /v1/read` with `summarize`, `sentiment`, `topics`, and `intents`. Covers the two required query parameters (`language` plus at least one feature), the three accepted body shapes, the `text`-versus-`url` exactly-one rule, and why `detect_entities` is not on this endpoint (#12)
+- `browser-agent` skill: the four Browser Agent SDK packages on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`), how to pick a layer, the `tokenFactory` and `Sec-WebSocket-Protocol` handshake that keeps a Deepgram API key out of client-side code, and the `^0.1.0` dependency ranges that break a `@deepgram/react@0.2.0` install (#14)
+- `cli` skill: `deepctl` install paths and the three interchangeable binaries, the three authentication paths, the real command surface, `dg init`, `dg mcp`, and the parameters the flags do not expose (`dg api` is the escape hatch, and it takes JSON bodies only) (#16)
+- `self-hosted` skill: a router plus four references (`hardware`, `docker-podman`, `kubernetes`, `sagemaker`) over a docs surface of more than 60 pages, replacing 80 lines that covered only distribution-credential CRUD. It decides whether self-hosting is the answer at all before it walks the licensing and container-credential bootstrap. Flux STT, Flux TTS, and Voice Agent all run self-hosted but are off by default, each needing a minimum image, a hand-requested model file, and a dedicated Engine; Flux STT allocates all available GPU memory at Engine startup, so a Nova-3 request against the same GPU returns CUDA OOM; Voice Agent self-hosted is Kubernetes only; Whisper is not a self-hosted product at all. SageMaker transport ships as three packages: PyPI `deepgram-sagemaker`, Maven `com.deepgram:deepgram-sagemaker`, and npm `@deepgram/sagemaker` (#15)
+- `CONTRIBUTING.md`, plus OpenAI Codex and Cursor install and usage sections in `README.md` (#10)
+- `AGENTS.md`, with the repository layout, headless install and regeneration commands, and the release process (#8)
+- Marketplace: `audio-intelligence`, `text-intelligence`, `browser-agent`, `cli`, and `self-hosted` added to `plugins[0].skills`. That list is hardcoded, so until now those five had no `/deepgram:<name>` command and were invisible to the entire Claude Code plugin path, even though `npx skills add` found them by directory glob
+- README: the same five skills added to all three per-skill lists, which have to stay in sync: the skills table, the `/deepgram:<name>` slash commands, and the Codex `$<name>` invocation list
+- Recipes skill: the Text Analysis `v1` product row (`/v1/read`: `summarize`, `sentiment`, `topics`, `intents`, covered in all seven languages), which the live `deepgram/recipes` COVERAGE.md carries and this skill had omitted. The Audio Intelligence row is now labelled `/v1/listen` so the two are not read as one product
+- Setup-mcp skill: a regional-endpoints section covering the split where the data plane serves EU, AU, and IN but the management API does not (#11)
+- Starters skill: the 8 `{feature}-html` repositories documented as frontend submodules rather than runnable starters, including their inverted naming (`{feature}-html`, not `html-{feature}`) (#11)
+- API skill: a prune pass for orphaned reference files and a content sanity check in `fetch-specs` (#17)
+
+### Changed
+
+- Browser work now routes to the `browser-agent` skill in `README.md`, `skills/api/SKILL.md`, `skills/docs/SKILL.md`, `skills/examples/SKILL.md`, and `skills/recipes/SKILL.md`. All five had said the browser SDK skills were "not yet public" and sent browser work to `@deepgram/sdk`'s browser bundle instead. The four Browser Agent SDK packages ship on npm, so that routing is gone; the Swift and Kotlin repositories are still private, so their `npx skills add` targets stay out
+- Skills no longer record when a fact was checked, per the review checklist in `CONTRIBUTING.md`. Verification dates and "verified live" notes came out of `audio-intelligence`, `browser-agent`, `speech-to-text`, `text-intelligence`, `text-to-speech`, and `voice-agent`, with the facts and the exact error strings kept. Release and changelog dates (`deepctl` 0.3.0 published 2026-08-19, `@deepgram/react` 0.2.0 shipped 2026-09-10, `ForceEndTurn` added August 28, 2026) stay, because those are properties of the thing described
+- Browser-agent skill: the pinned version table now follows registry-first guidance rather than leading with it. The packages are pre-1.0 and `@deepgram/ui`'s own README says interfaces may change between minor versions, so the skill puts the `npm view` commands ahead of the table and states that the registry wins
+- Setup-mcp skill: rewritten around three verified paths (the CLI proxy `dg mcp`, the standalone `deepgram-mcp` package, and the hosted docs MCP server) (#11)
+- README: the Codex docs MCP command gained authentication. `codex mcp add deepgram-docs --url https://api.dx.deepgram.com/kapa/mcp` returns 401 bare; the endpoint accepts a Deepgram API key as a bearer token, so the command now passes `--bearer-token-env-var DEEPGRAM_API_KEY`, and the credential-free `https://developers.deepgram.com/_mcp/server` is named as the alternative
+- New routing bullets where a skill should have pointed at a sibling and did not: `voice-agent` to `browser-agent`, `speech-to-text` to `audio-intelligence`, `text-intelligence`, and `cli`, `recipes` to `cli` and to both intelligence skills, `starters` to `cli` for `dg init`
+- `AGENTS.md`: the layout table said "the six shipped skills" and named the wrong six. It now names all 14, and records that `api` and `self-hosted` are the only two with a `references/` folder and that only `api`'s is generated
+- Marketplace: the `deepgram` plugin description enumerated only the three original on-ramps
+- API and docs skills: the "Related Deepgram skills" lists are the two routers an agent lands on, and both omitted `audio-intelligence`, `text-intelligence`, `browser-agent`, `cli`, and `self-hosted`. All five added to each
+- Examples skill: the browser row read "via the Browser SDK", which now collides with the Browser Agent SDK packages. It names `@deepgram/sdk` in the browser, which is what that integration uses
+- README, docs, and starters skills: the sibling-skill bullet lists this release extends no longer use em dashes, per the review checklist in `CONTRIBUTING.md`
+
+### Fixed
+
+- README and four skill files: removed the `npx skills add` targets for the Swift, Kotlin, and browser SDK repositories. Those repositories are private, so the command returns 404 for every reader outside Deepgram (#8)
+- Removed the `deepgram-{lang}-maintaining-sdk` claim from `README.md` and `skills/api/SKILL.md`. No SDK repository ships a skill by that name; each ships 7 product skills (#8)
+- Setup-mcp skill: the old hosted-MCP fallback pointed at an endpoint that returns 401 to an unauthenticated request, and claimed "full tool access". `dg mcp` exposes exactly one tool, `search_deepgram_knowledge_sources` (#11)
+- API skill: corrected the self-hosted management path in the API Domains table. It read `/v1/projects/*/selfhosted/*`; the spec and the API serve `/v1/projects/*/self-hosted/*` (#11)
+- API generator: a `/selfhosted` path test that never matched the hyphenated `/v1/projects/{project_id}/self-hosted/...` paths in the spec. It orphaned `references/self-hosted.md` while duplicating that file's endpoints into `projects.md` (#17)
+- API generator: JSON Pointer resolution failed on unescaped slashes in AsyncAPI component keys, so no WebSocket message payload had ever rendered in any reference file (#17)
+- API generator: a `messageName` fallback manufactured invalid `type` values, for example `AgentV1InjectUser` in place of `AgentV1InjectUserMessage` (#17)
+- CLI skill: the list of this repository's skills that `dg skills` does not fetch named five and went stale the moment a sixth was added. It now says that everything outside the four hardcoded ones is never fetched, and that the list does not grow with the repository
+- Starters skill: "See the `setup-mcp` skill to install the CLI" sent a CLI install to the MCP-wiring skill. It points at the `cli` skill
+- Text-to-speech skill: dropped a note claiming the generated `speed` reference was stale and still listed seven values from `0.85` to `1.15`. The regenerated reference carries the same `0.5` to `1.5` range in `0.05` increments the skill documents
+
+### Picked up in the spec regen
+
+All references were regenerated after the generator fixes above, so the surface changes are listed separately (#17):
+
+- `Any type` placeholders dropped from 23 to 7
+- New messages and fields: `ListenV2ForceEndTurn`, `AgentV1ForceEndTurn`, `AgentV1FunctionCallCancelled`, `trigger` on `EndOfTurn`, `defer_until_eot`, `numerals`, `diarize_info`, and `expressivity` in `agent.md`
+- `aura-2-perseo-it` removed from the voice catalog
+- Flux TTS `speed` widened to `0.5` to `1.5`
+
+[1.6.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.5.0...deepgram-skills-v1.6.0
+
 ## [1.5.0] - 2026-08-12
 
 ### Added
