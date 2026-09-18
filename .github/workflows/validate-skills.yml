@@ -31,27 +31,59 @@ jobs:
       - name: Validate skills
         run: bun run scripts/validate-skills.ts
 
-  # Blocking. First-party authoring lint from deepgram/ci-tools (skill_lint.py):
-  # description quality, inline code, allowed-tools coverage, model/effort/version.
-  # Complements the job above, which owns parse-correctness and manifest sync.
+  # First-party authoring lint from deepgram/ci-tools (skill_lint.py): description
+  # quality, inline code, allowed-tools coverage, model/effort/version. Complements the
+  # job above, which owns parse-correctness and manifest sync.
+  #
+  # deepgram/ci-tools is PRIVATE, so the default GITHUB_TOKEN cannot check it out — it
+  # fails with "Repository not found". Until a read token is provisioned as the
+  # CI_TOOLS_READ_TOKEN secret, this job reports the gap and passes rather than failing
+  # every PR on a missing credential. Once the secret exists it lints and blocks, with
+  # no workflow change needed.
   lint-skills:
     name: Lint skills (ci-tools)
     runs-on: ubuntu-latest
+    env:
+      CI_TOOLS_READ_TOKEN: ${{ secrets.CI_TOOLS_READ_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Check for a ci-tools read token
+        id: gate
+        run: |
+          if [ -n "$CI_TOOLS_READ_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping the ci-tools skill lint: deepgram/ci-tools is private and no CI_TOOLS_READ_TOKEN secret is set."
+            {
+              echo "## ci-tools skill lint skipped"
+              echo
+              echo "\`deepgram/ci-tools\` is a private repository, so the default \`GITHUB_TOKEN\`"
+              echo "cannot check it out. Add a read-scoped token as the \`CI_TOOLS_READ_TOKEN\`"
+              echo "repository secret to enable this lint — no workflow change is needed."
+              echo
+              echo "The blocking \`Validate skills and manifest\` job is unaffected."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - if: steps.gate.outputs.available == 'true'
+        uses: actions/checkout@v4
 
       - name: Check out ci-tools
+        if: steps.gate.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           repository: deepgram/ci-tools
           ref: v3
           path: .ci-tools
+          token: ${{ secrets.CI_TOOLS_READ_TOKEN }}
 
-      - uses: actions/setup-python@v5
+      - if: steps.gate.outputs.available == 'true'
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Lint skills
+        if: steps.gate.outputs.available == 'true'
         working-directory: .ci-tools
         run: make lint PROJECT_DIR="$GITHUB_WORKSPACE"
 
