@@ -276,7 +276,7 @@ for natural voice conversations
     - **EagerEndOfTurn** - The system has moderate confidence that the user has finished speaking for the turn. This is an opportunity to begin preparing an agent reply
     - **TurnResumed** - The system detected that speech had ended and therefore sent an **EagerEndOfTurn** event, but speech is actually continuing for this turn
     - **EndOfTurn** - The user has finished speaking for the turn
-  - `turn_index` integer **(required)** — The index of the current turn
+  - `turn_index` integer **(required)** (minimum: `0`) — The index of the current turn
   - `audio_window_start` string **(required)** — Start time in seconds of the audio range that was transcribed
   - `audio_window_end` string **(required)** — End time in seconds of the audio range that was transcribed
   - `transcript` string **(required)** — Text that was said over the course of the current turn
