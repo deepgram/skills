@@ -35,7 +35,7 @@ Generates a temporary JSON Web Token (JWT) with a 30-second (by default) TTL and
 
 **application/json**
 
-- `ttl_seconds` number — Time to live in seconds for the token. Defaults to 30 seconds.
+- `ttl_seconds` number (range: `1` to `3600`) — Time to live in seconds for the token. Defaults to 30 seconds.
 
 #### Responses
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- API skill: the reference generator now emits JSON-Schema bounds, which it had been discarding for every parameter. `minimum` and `maximum` are the only bounds the specs carry today (20 values in `openapi.yml`, 29 in `asyncapi.yml`); `minLength`, `maxLength`, `minItems`, `maxItems`, `exclusiveMinimum`, and `exclusiveMaximum` are handled so an upstream spec that starts using one needs no further change, and `multipleOf` is handled alongside them. `enum` is left as it was, because `formatType` already renders it as a literal union. A bound whose numbers the description states in prose is suppressed rather than repeated, so `limit`, which ends "Range [1,1000]", does not also render "range: `1` to `1000`". `ttl_seconds` on `POST /v1/auth/grant` gains `range: 1 to 3600`, the `/v1/speak` and Speak v1 WebSocket `speed` parameters gain `range: 0.7 to 1.5`, and `turn_index` on Flux STT `TurnInfo` gains `minimum: 0`
+
+### Fixed
+
+- Browser-agent skill: the `ttl` versus `ttl_seconds` mistake no longer claims that browser-agent documentation snippets still show `ttl`. Those snippets were corrected upstream. The mistake itself, the observed `expires_in` values, and the advice to read `expires_in` rather than trust the field name all stand; the reason given for that advice is now the behavior that causes it, which is that `/v1/auth/grant` ignores any field it does not recognize and still answers HTTP 200
+
+[Unreleased]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.6.0...HEAD
+
 ## [1.6.0] - 2026-09-18
 
 ### Added
