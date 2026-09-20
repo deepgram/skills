@@ -233,6 +233,178 @@ function formatType(schema: any, depth = 0): string {
   return schema.type ?? "any";
 }
 
+// ---------------------------------------------------------------------------
+// Constraint rendering
+// ---------------------------------------------------------------------------
+//
+// Numeric and size bounds were being discarded, so every ceiling and floor in
+// the specs was invisible to an agent reading a reference file. `ttl_seconds`
+// rendered with no bound at all even though the schema pins it to 1..3600.
+//
+// `enum` and `const` are deliberately absent from this section: `formatType`
+// already renders them as a literal union, which is the more useful form.
+// `minLength`, `maxLength`, `minItems`, `maxItems`, `exclusiveMinimum` and
+// `exclusiveMaximum` do not occur in either spec today. They are handled
+// anyway so an upstream spec that starts using one needs no patch here.
+//
+// Bounds nested inside `oneOf` branches are NOT hoisted to the bullet. The
+// clearest case is `bit_rate`, whose two numeric branches carry different,
+// codec-dependent ranges (4000..650000 and 4000..192000); stating either at
+// the property level would assert a ceiling that is false for the other
+// branch. A union of overlapping ranges is a spec-side ambiguity, not
+// something this renderer should paper over.
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+// Every unsigned number the prose already spells out. Used to suppress a bound
+// the description states in words, so `limit`, whose description ends "Range
+// [1,1000]", does not also render "(range: `1` to `1000`)". Signs are dropped
+// on both sides of the comparison: no bound in either spec is negative, and
+// matching on magnitude keeps a hyphenated range such as `0.5 - 1.0` from
+// being read as the number -1.0.
+function numbersStatedInText(text: string): Set<number> {
+  const stated = new Set<number>();
+  for (const token of text.match(/\d+(?:\.\d+)?/g) ?? []) {
+    const value = Number(token);
+    if (Number.isFinite(value)) stated.add(value);
+  }
+  return stated;
+}
+
+interface BoundLabels {
+  both: string;
+  lower: string;
+  upper: string;
+}
+
+const NUMERIC_LABELS: BoundLabels = { both: "range", lower: "minimum", upper: "maximum" };
+const LENGTH_LABELS: BoundLabels = { both: "length", lower: "min length", upper: "max length" };
+const ITEMS_LABELS: BoundLabels = { both: "items", lower: "min items", upper: "max items" };
+
+function renderBoundPair(
+  lower: number | undefined,
+  upper: number | undefined,
+  lowerExclusive: boolean,
+  upperExclusive: boolean,
+  labels: BoundLabels,
+  stated: Set<number>
+): string | undefined {
+  const keepLower = lower !== undefined && !stated.has(Math.abs(lower));
+  const keepUpper = upper !== undefined && !stated.has(Math.abs(upper));
+  if (!keepLower && !keepUpper) return undefined;
+  // A closed interval reads better as one phrase than as two half-bounds.
+  if (keepLower && keepUpper && !lowerExclusive && !upperExclusive) {
+    return `${labels.both}: \`${lower}\` to \`${upper}\``;
+  }
+  const parts: string[] = [];
+  if (keepLower) {
+    parts.push(
+      lowerExclusive ? `greater than \`${lower}\`` : `${labels.lower}: \`${lower}\``
+    );
+  }
+  if (keepUpper) {
+    parts.push(
+      upperExclusive ? `less than \`${upper}\`` : `${labels.upper}: \`${upper}\``
+    );
+  }
+  return parts.join(", ");
+}
+
+// `exclusiveMinimum`/`exclusiveMaximum` are numbers in JSON Schema 2020-12,
+// which is what OpenAPI 3.1 and AsyncAPI 3 use, but booleans in draft-4, where
+// they only mark the neighbouring `minimum`/`maximum` as exclusive. Accept both
+// spellings rather than mis-read a boolean as a bound.
+function numericBounds(schema: any): {
+  lower?: number;
+  upper?: number;
+  lowerExclusive: boolean;
+  upperExclusive: boolean;
+} {
+  let lower = finiteNumber(schema.minimum);
+  let upper = finiteNumber(schema.maximum);
+  let lowerExclusive = false;
+  let upperExclusive = false;
+
+  const exclusiveLower = finiteNumber(schema.exclusiveMinimum);
+  if (exclusiveLower !== undefined) {
+    lower = exclusiveLower;
+    lowerExclusive = true;
+  } else if (schema.exclusiveMinimum === true && lower !== undefined) {
+    lowerExclusive = true;
+  }
+
+  const exclusiveUpper = finiteNumber(schema.exclusiveMaximum);
+  if (exclusiveUpper !== undefined) {
+    upper = exclusiveUpper;
+    upperExclusive = true;
+  } else if (schema.exclusiveMaximum === true && upper !== undefined) {
+    upperExclusive = true;
+  }
+
+  return { lower, upper, lowerExclusive, upperExclusive };
+}
+
+// Every bound phrase the schema states and the description does not, for
+// example `["range: \`1\` to \`3600\`"]`. Empty when the schema states no
+// bound, or when the description already states each one in prose.
+function constraintPhrases(schema: any, description: unknown): string[] {
+  if (!schema || typeof schema !== "object") return [];
+  const stated = numbersStatedInText(
+    description === undefined || description === null ? "" : String(description)
+  );
+
+  const numeric = numericBounds(schema);
+  const groups = [
+    renderBoundPair(
+      numeric.lower,
+      numeric.upper,
+      numeric.lowerExclusive,
+      numeric.upperExclusive,
+      NUMERIC_LABELS,
+      stated
+    ),
+    renderBoundPair(
+      finiteNumber(schema.minLength),
+      finiteNumber(schema.maxLength),
+      false,
+      false,
+      LENGTH_LABELS,
+      stated
+    ),
+    renderBoundPair(
+      finiteNumber(schema.minItems),
+      finiteNumber(schema.maxItems),
+      false,
+      false,
+      ITEMS_LABELS,
+      stated
+    ),
+  ].filter((group): group is string => group !== undefined);
+
+  const step = finiteNumber(schema.multipleOf);
+  if (step !== undefined && !stated.has(Math.abs(step))) {
+    groups.push(`multiple of \`${step}\``);
+  }
+
+  return groups;
+}
+
+// The parenthetical that carries the default and the bounds, as one group:
+// ` (default: \`1\`, range: \`0.7\` to \`1.5\`)`. Kept to a single parenthesis
+// on purpose. Emitting the bounds as their own group put two of them side by
+// side ("(default: `1`) (range: `0.7` to `1.5`)"), which reads as a stumble.
+// A schema with only a default still renders exactly `(default: \`x\`)`, so
+// the thousands of bullets that carry no bound are untouched.
+function formatAnnotations(schema: any, description: unknown): string {
+  const parts: string[] = [];
+  if (schema?.default !== undefined) parts.push(`default: \`${schema.default}\``);
+  parts.push(...constraintPhrases(schema, description));
+  if (parts.length === 0) return "";
+  return ` (${parts.join(", ")})`;
+}
+
 // Spec descriptions are frequently multi-paragraph. Dropped into a list item
 // verbatim, the unindented continuation lines terminate the surrounding
 // markdown list. Indent them to the item's content column instead.
@@ -262,8 +434,8 @@ function describeSchema(
     const desc = prop.description
       ? ` — ${inlineDescription(prop.description, indent)}`
       : "";
-    const def = prop.default !== undefined ? ` (default: \`${prop.default}\`)` : "";
-    lines.push(`${indent}- \`${name}\` ${type}${required}${def}${desc}`);
+    const ann = formatAnnotations(prop, prop.description);
+    lines.push(`${indent}- \`${name}\` ${type}${required}${ann}${desc}`);
   }
   return lines.join("\n");
 }
@@ -391,14 +563,11 @@ function renderEndpoint(
       });
       const type = formatType(schema);
       const req = p.required ? " **(required)**" : "";
-      const def =
-        schema?.default !== undefined
-          ? ` (default: \`${schema.default}\`)`
-          : "";
+      const ann = formatAnnotations(schema, schema.description);
       const desc = schema.description
         ? ` — ${inlineDescription(schema.description, "")}`
         : "";
-      lines.push(`- \`${p.name}\` ${type}${req}${def}${desc}`);
+      lines.push(`- \`${p.name}\` ${type}${req}${ann}${desc}`);
     }
     lines.push("");
   }
