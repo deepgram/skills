@@ -194,9 +194,11 @@ Mirror images into your own registry and repoint `{api,engine,licenseProxy,billi
 
 `global.fips.enabled: true` renders `[fips] mode = "enabled"` into every service's config. You must **also** set a `-fips` image tag on every component in the same change — the FIPS images do not enable FIPS mode on their own, and the chart fails at render time if a non-`-fips` or pre-`release-260728` tag is present. Non-official tags are not checked, since private registries use their own naming.
 
+Three constraints come with the `-fips` images. Flux STT is not supported on FIPS images and runs only on standard images. The FIPS Engine loads `.dgv2` models only, and `.dgv2` and `.dg` files are not interchangeable, so the model files you mount must be the FIPS set from your account team. The FIPS API image enforces TLS 1.3 exclusively, rejecting TLS 1.2 connections and non-FIPS cipher suites such as ChaCha20; the `[fips]` flag does not control this, so an ingress or client that only speaks TLS 1.2 fails to connect, and you supply the full-chain PKI certificate for the API's HTTPS endpoint.
+
 Verify from logs, not from config: each service logs `openssl_fips_enabled` and `has_fips_encryption` at startup, and **both must be true**. A standard image can report `openssl_fips_enabled=true` with `has_fips_encryption=false`, so the first field alone proves nothing.
 
-Known issue: MP3 and FLAC output on FIPS images. Set `encoding` explicitly on batch `/v2/speak` requests.
+Known issue: MP3 and FLAC output on FIPS images returns `HTTP 200` with an empty body. Set `encoding` explicitly on `/v1/speak` and batch `/v2/speak` requests, which default to MP3; `linear16` and `opus` are unaffected, and so is streaming `/v2/speak`.
 
 ## Troubleshooting
 

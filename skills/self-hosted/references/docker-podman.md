@@ -194,7 +194,7 @@ wscat -c "ws://localhost:8080/v2/speak?model=flux-haley-en"
 # {"type": "Flush"}
 ```
 
-On FIPS images, MP3 and FLAC output is a known issue — set `encoding` explicitly on batch `/v2/speak` requests, which default to MP3. Streaming is unaffected.
+On FIPS images (the `-fips` tag suffix), MP3 and FLAC output is a known issue: a request for either returns `HTTP 200` with an empty body, so set `encoding` explicitly on `/v1/speak` and batch `/v2/speak` requests, which default to MP3. Streaming `/v2/speak` returns `linear16` and is unaffected. Flux TTS runs on FIPS images; Flux STT does not, and runs only on standard images. The FIPS Engine loads `.dgv2` models only (`.dgv2` and `.dg` files are not interchangeable), and the FIPS API image accepts TLS 1.3 only, rejecting TLS 1.2 connections and non-FIPS cipher suites whatever the `[fips]` flag says.
 
 ## Sources
 
@@ -203,5 +203,6 @@ On FIPS images, MP3 and FLAC output is a known issue — set `encoding` explicit
 - Deploy TTS services: https://developers.deepgram.com/docs/deploy-tts-services
 - Flux STT self-hosted: https://developers.deepgram.com/docs/flux-self-hosted
 - Flux TTS self-hosted: https://developers.deepgram.com/docs/deploy-flux-tts
+- FIPS: https://developers.deepgram.com/docs/fips-compliant-deployment
 - Per-cloud and bare metal: https://developers.deepgram.com/docs/aws-docker-podman, https://developers.deepgram.com/docs/gcp-docker-podman, https://developers.deepgram.com/docs/oci-docker-podman, https://developers.deepgram.com/docs/azure-docker-podman, https://developers.deepgram.com/docs/bare-metal
 - Templates: https://github.com/deepgram/self-hosted-resources/tree/main/docker and `/podman`, `/common`, `/diagnostics`

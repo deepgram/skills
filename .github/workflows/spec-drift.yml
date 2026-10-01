@@ -8,10 +8,10 @@ name: API Spec Drift
 # (`bun run scripts/fetch-specs.ts … && bun run scripts/generate-skills.ts`), and an
 # auto-commit would land unreviewed API copy in a skill agents read as reference.
 #
-# Known limitation: `generate-skills.ts` overwrites the reference files it emits but does
-# not prune ones it no longer emits, so a reference file for a *removed* endpoint group
-# shows up as no drift here. Additions and edits are detected. This job is deliberately
-# tolerant of that — it reports what it can see rather than asserting the tree is clean.
+# `generate-skills.ts` deletes any reference file it did not emit on the run, so a
+# reference file for a *removed* endpoint group shows up here as a deletion. Additions,
+# edits, and removals are all detected; the `git add -A` in the report step is what makes
+# new and deleted files visible to the diff.
 
 on:
   schedule:

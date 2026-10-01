@@ -176,14 +176,14 @@ Both TTS families are actively maintained. `/v2/speak` is a **new endpoint, not 
 | Batch encodings | `mp3`, `opus`, `flac`, `aac`, `linear16`, `mulaw`, `alaw` + `container` / `bit_rate` | Same — but batch-only; the socket rejects them |
 | Interruption | `Clear` discards the buffer, no feedback | `Interrupt` → `SpeechInterrupted` with `text_spoken` / `text_remaining` |
 | Mid-stream reconfig | No (fixed at connection) | Yes — `Configure` updates `speed` only |
-| `speed` | `0.7`–`1.5` — Aura-2, English and Spanish only | `0.5`–`1.5` in `0.05` steps |
+| `speed` | `0.7` to `1.5`, Aura-2, English and Spanish only | `0.5` to `1.5` in `0.05` steps; capped at `1.15` when the text carries a pause marker (`PAUSE_SPEED_CAP_EXCEEDED` above that); see Inline controls for the pronunciation rule |
 | `expressivity` | Not supported | `-2`…`2`, default `0` (beta; fixed for the connection) |
+| Inline controls | Pronunciation `\{"word":"...","pronounce":"<IPA>"\}` (GA on Aura-2, English and Spanish, input up to 2000 characters, combinable with `speed`); no pause control | Pronunciation (Early Access, both transports) only with `speed` exactly `1.0`: `CONTROL_COMBINATION_INVALID` on batch, `DATA-0002` on the socket; pause `\{pause:500ms\}` on batch only, 500 to 3000 ms in 100 ms steps, at most 8 per request |
 | Voice Agent `provider.version` | `v1` (the default when a provider is specified) | `v2` (required) |
 
 **Pick Aura (`/v1/speak`) when:**
 - You need a language other than English, or a specific Aura voice
-- You want compressed or containerized output (`mp3`, `opus`, `flac`, `aac`) from a stream
-- You're doing one-shot synthesis and don't need a turn lifecycle
+- You need compressed output (`mp3`, `opus`, `flac`, `aac`) inside a Voice Agent, where Flux TTS returns `INVALID_SETTINGS`; on batch REST both families serve those encodings
 - You're already on Aura and nothing in Flux TTS is pulling you over — v1 is unchanged
 
 **Pick Flux TTS (`/v2/speak`) when:**
@@ -205,7 +205,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 | Speak v2 — TTS, Flux TTS (turn-based) | `POST /v2/speak` | `wss://api.deepgram.com/v2/speak` | [speak.md](references/speak.md) |
 | Voice Agent | `GET agent.deepgram.com/v1/agent/settings/think/models`; reusable agent configurations at `/v1/projects/{project_id}/agents` (`GET`, `POST`) and `/v1/projects/{project_id}/agents/{agent_id}` (`GET`, `PUT`, `DELETE`); agent variables at `/v1/projects/{project_id}/agent-variables` (`GET`, `POST`) and `/v1/projects/{project_id}/agent-variables/{variable_id}` (`GET`, `PATCH`, `DELETE`) | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
 | Read (Intelligence) | `POST /v1/read` | — | [read.md](references/read.md) |
-| Models | `GET /v1/models`, `GET /v1/models/{model_id}`, `GET /v1/projects/{project_id}/models`, `GET /v1/projects/{project_id}/models/{model_id}`; `include_outdated=true` on either list call also returns non-latest model versions | — | [models.md](references/models.md) |
+| Models | `GET /v1/models`, `GET /v1/models/{model_id}`, `GET /v1/projects/{project_id}/models`, `GET /v1/projects/{project_id}/models/{model_id}`; `include_outdated=true` on either list call also returns non-latest model versions | none | [models.md](references/models.md) |
 | Projects | `/v1/projects/*` | — | [projects.md](references/projects.md) |
 | Auth | `POST /v1/auth/grant` | — | [auth.md](references/auth.md) |
 | Self-Hosted | `/v1/projects/*/self-hosted/*` | — | [self-hosted.md](references/self-hosted.md) |
@@ -216,7 +216,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 1. **Feature flags are query params, except for Voice Agent and the v2 mid-session updates.** For `/v1/listen`, `/v2/listen`, `/v1/speak`, and `/v2/speak`, initial options go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). Exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); `/v2/listen` supports a `Configure` message after connection to update EOT thresholds, keyterms, language hints, and `numerals` mid-session; and `/v2/speak` supports a `Configure` message that updates `speed` only. Also note that `/v2/listen` has a much smaller param set than `/v1/listen`: flags like `smart_format`, `diarize_model`, and `punctuate` are not available.
 
-2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further.
+2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further. Limits apply per project, not per API key, and differ by region; the [API Rate Limits](https://developers.deepgram.com/reference/api-rate-limits) page carries the per-region concurrency tables.
 
 ### STT WebSocket (`/v1/listen`)
 
@@ -242,7 +242,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 11. **Streaming is raw audio only, and rejects anything it doesn't recognize.** The WebSocket emits non-containerized audio, so `encoding` is limited to `linear16` (default), `mulaw`, or `alaw`. The compressed and containerized encodings (`mp3`, `opus`, `flac`, `aac`) and the `container`, `bit_rate`, `callback`, `callback_method`, and `priority` params are **batch-only** — sending them to the socket fails the connection, as does any unknown or misspelled param. Use the batch REST transport when you need compressed output.
 
-12. **Insert whitespace between separate generations, because the server won't.** Text normalization runs before synthesis, but successive `Speak` messages are concatenated verbatim. Sending `"Hello world."` then `"How are you?"` is processed as `"Hello world.How are you?"`, which causes sentence-boundary artifacts. Add a single space (or the right separator for non-whitespace languages) when you stitch a reply, a tool-call result, and another reply together. Send plain text: SSML is not interpreted, and the only markup Flux TTS honors is its own escaped inline controls. A pronunciation override `\{"word":"...","pronounce":"<IPA>"\}` is honored on both transports (Early Access) but only with `speed` 1.0, and a pause marker `\{pause:500ms\}` is batch-only. A pause marker on the socket, or a pronunciation control on a socket whose `speed` is not 1.0, fails the connection with `DATA-0002`. See [Speed, Pause, Pronunciation](https://developers.deepgram.com/docs/tts-voice-controls).
+12. **Insert whitespace between separate generations, because the server won't.** Text normalization runs before synthesis, but successive `Speak` messages are concatenated verbatim. Sending `"Hello world."` then `"How are you?"` is processed as `"Hello world.How are you?"`, which causes sentence-boundary artifacts. Add a single space (or the right separator for non-whitespace languages) when you stitch a reply, a tool-call result, and another reply together. Send plain text: SSML is not interpreted, and the only markup Flux TTS honors is its own escaped inline controls. A pronunciation override `\{"word":"...","pronounce":"<IPA>"\}` is honored on both transports (Early Access) but only with `speed` 1.0, and a pause marker `\{pause:500ms\}` is batch-only. A pause marker on the socket, or a pronunciation control on a socket whose `speed` is not 1.0, fails the connection with `DATA-0002`. On batch `POST /v2/speak` the same violations are a 400 whose `err_code` names the rule: `CONTROL_COMBINATION_INVALID` (pronunciation with a pause, or with a `speed` other than `1.0`), `PAUSE_SPEED_CAP_EXCEEDED` (a pause marker with `speed` above `1.15`), `BREAK_OUT_OF_RANGE` (a pause outside 500 to 3000 ms), `BREAK_INCREMENT_INVALID` (a pause off the 100 ms grid), `BREAKS_LIMIT_EXCEEDED` (more than 8 pause markers, or two with no text between them), and `BREAK_SYNTAX_INVALID` (a malformed marker, such as a simple marker without backslashes or an escaped structured marker). A `speed` of exactly `1.0` never counts as a speed control, so it triggers none of these. See [Speed, Pause, Pronunciation](https://developers.deepgram.com/docs/tts-voice-controls).
 
 ### Voice Agent (`/v1/agent/converse`)
 
@@ -263,7 +263,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
     ```json
     { "type": "Configure", "thresholds": { "eot_threshold": 0.8, "eot_timeout_ms": 3000 }, "keyterms": ["Deepgram"] }
     ```
-    The server responds with `ConfigureSuccess` (echoing back applied values) or `ConfigureFailure`, which carries `code` and `description` identifying the rejected configuration. Omitted threshold fields keep their current values.
+    The server responds with `ConfigureSuccess`, which echoes the full active configuration, `numerals` included, not only the fields you sent, or `ConfigureFailure`, which carries `code` and `description` identifying the rejected configuration. Omitted threshold fields keep their current values.
 
 18. **`ForceEndTurn` outside a turn is a `Warning`, not an error, and the socket stays open.** Sending `{"type":"ForceEndTurn"}` while no turn is in progress returns `{"type":"Warning","code":"FORCE_END_TURN_NO_ACTIVE_TURN","description":"Received ForceEndTurn while no turn was active; the request was ignored."}` and the connection continues. Do not treat it as fatal or reconnect. `references/listen.md` shows the message shape (`ListenV2Warning`: `code`, `description`, `request_id`, `sequence_id`); `code` is a free string there, so the individual codes such as `FORCE_END_TURN_NO_ACTIVE_TURN` come from the [Force End Turn](https://developers.deepgram.com/docs/flux/force-end-turn) docs. When `ForceEndTurn` *does* land mid-turn, the resulting `TurnInfo` carries `event: "EndOfTurn"` with `trigger: "manual"`. `trigger` is `model` | `manual` | `timeout`, it appears on `EndOfTurn` and nowhere else, and it is an open enum, so tolerate values you do not recognize.
 
@@ -328,3 +328,5 @@ Swift and Kotlin SDK skills are not listed because those repositories are not pu
 - [Self-Hosted Deployments](https://developers.deepgram.com/docs/self-hosted-introduction)
 - [Regional Endpoints](https://developers.deepgram.com/reference/regional-endpoints)
 - [Custom Endpoints](https://developers.deepgram.com/reference/custom-endpoints)
+- [API Rate Limits](https://developers.deepgram.com/reference/api-rate-limits): per-region concurrency tables for every API; limits apply per project, not per API key
+- [Working with Concurrency Rate Limits](https://developers.deepgram.com/docs/working-with-concurrency-rate-limits)

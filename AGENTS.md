@@ -14,11 +14,11 @@ voice agent, and audio intelligence APIs correctly.
 |------|---------|
 | `skills/` | The 14 shipped skills: `api`, `audio-intelligence`, `browser-agent`, `cli`, `docs`, `examples`, `recipes`, `self-hosted`, `setup-mcp`, `speech-to-text`, `starters`, `text-intelligence`, `text-to-speech`, `voice-agent`. `api` and `self-hosted` are the only two that carry a `references/` folder, and only `api`'s is generated |
 | `template/` | Starting point for a new skill (`SKILL.md` with YAML frontmatter) |
-| `scripts/` | `fetch-specs.ts` and `generate-skills.ts` — regenerate the `api` skill from the public OpenAPI and AsyncAPI specs |
+| `scripts/` | `fetch-specs.ts` and `generate-skills.ts` regenerate the `api` skill from the public OpenAPI and AsyncAPI specs; `validate-skills.ts` parses every `SKILL.md` frontmatter with the YAML parser the `skills` installer uses and diffs `.claude-plugin/marketplace.json` against the filesystem (`--remote` also checks the SDK plugins' skill paths through `gh api`) |
 | `.claude-plugin/` | Claude Code plugin-marketplace manifest — `metadata.version` is the released version, and `plugins[0].skills` is the list the installer reads |
 | `CHANGELOG.md` | Keep a Changelog / SemVer record; every release has an entry |
 | `package.json`, `bun.lock` | the single `yaml` dependency the generator needs |
-| `.github/workflows/` | `context7.yml` only — refreshes Context7 on a published release |
+| `.github/workflows/` | `context7.yml` refreshes Context7 on a published release; `spec-drift.yml` regenerates the `api` references from the live specs every Monday and opens or comments on a `spec-drift` issue when they differ, committing nothing; `validate-skills.yml` runs `validate-skills.ts` on every pull request and push to `main`, plus a report-only remote check of the SDK plugin skill paths and a ci-tools lint that skips until a `CI_TOOLS_READ_TOKEN` secret exists |
 
 ## Install (consumer side)
 
@@ -38,9 +38,8 @@ npx skills add deepgram/skills --skill api -y           # one skill
 
 `npx skills add` clones the repository with `git`. On an image without it (a
 bare `node:22-alpine`, for example) every target fails with `Failed to clone
-...: Error: spawn git ENOENT`, yet the command exits 0 and installs nothing.
-Install `git` first and check for the `SKILL.md` files rather than trusting
-the exit code.
+...: Error: spawn git ENOENT` and exits 1 with nothing installed. Install
+`git` first, and check for the `SKILL.md` files after any headless install.
 
 Claude Code plugin route: `/plugin marketplace add deepgram/skills`, then
 `/plugin install deepgram@deepgram-agent-skills`.
@@ -48,14 +47,16 @@ Claude Code plugin route: `/plugin marketplace add deepgram/skills`, then
 ## Regenerate and check headlessly (maintainer side)
 
 Requires [bun](https://bun.sh). There is no test suite; regeneration
-completing and a clean `git diff` (or an intended one) is the check.
+completing, a clean `git diff` (or an intended one), and `validate-skills.ts`
+printing every skill as valid are the checks.
 
 ```bash
 bun run scripts/fetch-specs.ts https://dpgr.am/openapi.yml https://dpgr.am/asyncapi.yml
 bun install && bun run scripts/generate-skills.ts
+bun run scripts/validate-skills.ts
 ```
 
-## Versions and conventions (as of 2026-09-18)
+## Versions and conventions (as of 2026-10-01)
 
 - The generated `api` skill tracks the hourly-mirrored public specs at
   `https://dpgr.am/openapi.yml` and `https://dpgr.am/asyncapi.yml`.
@@ -79,14 +80,15 @@ two files together and then ships a tag:
    triggers `.github/workflows/context7.yml`.
 
 Adding a skill also means adding its path to `plugins[0].skills` in
-`.claude-plugin/marketplace.json`, or the installer will not offer it.
+`.claude-plugin/marketplace.json`, or the installer will not offer it, and a
+row to the skills table in `README.md`.
 
 ## Common failure modes
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `npx skills add deepgram/<repo>` fails with a not-found or auth error | the target repository is private or does not exist | only the six public SDK repositories listed in README.md carry installable skills |
-| every target fails with `spawn git ENOENT`, exit code 0, nothing installed | `git` is absent from the container or CI image; `npx skills add` shells out to it | install `git` (`apk add git` on Alpine) before running the installer |
+| every target fails with `spawn git ENOENT`, exit code 1, nothing installed | `git` is absent from the container or CI image; `npx skills add` shells out to it | install `git` (`apk add git` on Alpine) before running the installer |
 | `bun: command not found` | bun not installed | install from https://bun.sh; the generation scripts are bun-only |
 | `ENOENT ... specs/openapi.yml` from `generate-skills.ts` | `fetch-specs.ts` was not run first; `specs/` is gitignored, so it is absent in a fresh clone | run both regeneration commands in order |
 | Regenerated `api` skill shows unexpected churn | the upstream specs moved | inspect the spec diff first; the specs are the source of truth |

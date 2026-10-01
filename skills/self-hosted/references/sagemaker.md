@@ -2,7 +2,7 @@
 
 The managed middle ground: Deepgram runs inside your AWS account and VPC, but AWS handles instance provisioning, scaling, and container management. You subscribe to a Deepgram listing on AWS Marketplace and deploy a SageMaker Endpoint — no Quay credentials, no `.dg` model files, no driver installs.
 
-> **There is a dedicated skill for the AWS mechanics.** [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) (public) ships a `deepgram-sagemaker` skill with 13 deterministic scripts covering preflight, product selection, Marketplace subscribe, IAM execution role, quota check, deploy, invoke test, autoscaling, update, and teardown. Install it and use its scripts rather than hand-writing `aws sagemaker create-*` calls:
+> **There is a dedicated skill for the AWS mechanics.** [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) (public) ships a `deepgram-sagemaker` skill with 12 deterministic scripts plus a shared `_common.py` helper, covering preflight, product selection, Marketplace subscribe, model-package ARN lookup, IAM execution role, quota check, deploy, endpoint status, invoke test, autoscaling, update, and teardown. Install it and use its scripts rather than hand-writing `aws sagemaker create-*` calls:
 >
 > ```bash
 > npx skills add deepgram-devs/dg-sagemaker
@@ -56,7 +56,7 @@ SageMaker rejects an endpoint configuration whose instance type is absent from t
 aws sagemaker describe-model-package --model-package-name <model-package-arn>
 ```
 
-The host driver is set by the **inference AMI version**, separately from the instance type, and current Deepgram packages require a recent one. See [Inference AMI Versions](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#inference-ami-versions).
+The host driver is set by the **inference AMI version**, separately from the instance type. `InferenceAmiVersion=al2023-ami-sagemaker-inference-gpu-4-1` (NVIDIA driver 580, CUDA 13.0) is required on the production variant: current Deepgram model packages run a CUDA 13 runtime that needs driver 580 or later, and without it SageMaker boots the instance family's default AMI (an older driver on `g4dn` and `g5`) and the container fails its CUDA preflight check. The SageMaker AI console cannot set this field, so create the endpoint configuration with the AWS CLI, Boto3, or Terraform (`inference_ami_version`). See [Inference AMI Versions](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#inference-ami-versions).
 
 A machine-readable equivalent of this table — product IDs, invocation modes, supported instance types, required parameters — is [`references/products.json`](https://github.com/deepgram-devs/dg-sagemaker/blob/main/skills/deepgram-sagemaker/references/products.json).
 
@@ -206,7 +206,7 @@ Examples: `examples/src/main/java/com/deepgram/examples/` — `SageMakerTranspor
 
 ## Validating an endpoint
 
-Beyond the transports, [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) holds runnable client scripts per product and language: `python-stt/`, `python-flux/`, `python-flux-tts/`, `js-stt/`, and `java/stt/` (both an AWS-SDK and a Deepgram-SDK variant). See [Validate a Deepgram SageMaker Endpoint](https://developers.deepgram.com/docs/test-amazon-sagemaker-endpoint).
+Beyond the transports, [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) holds runnable client scripts per product and language: `python-stt/`, `python-flux/`, `python-tts/`, `python-flux-tts/`, `js-stt/`, and `java/stt/` (both an AWS-SDK and a Deepgram-SDK variant). See [Validate a Deepgram SageMaker Endpoint](https://developers.deepgram.com/docs/test-amazon-sagemaker-endpoint).
 
 ## Operations
 

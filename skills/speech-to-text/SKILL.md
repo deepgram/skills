@@ -21,7 +21,7 @@ Deepgram transcribes audio with two model families on two endpoints. Pick the fa
 | Endpoint | `/v1/listen`, REST and WebSocket | `/v2/listen`, WebSocket only |
 | Output | A transcript stream | `TurnInfo` events carrying turn state and a transcript per turn |
 | Turn detection | None built in; you use endpointing and your own logic | Built in: `StartOfTurn`, `EagerEndOfTurn`, `TurnResumed`, `EndOfTurn` |
-| Formatting and analysis | `smart_format`, `diarize_model`, `summarize`, `sentiment`, `topics`, `intents`, redaction | Word timestamps, `numerals`, number redaction (`redact=numbers` or `redact=aggressive_numbers`; any other `redact` value fails the handshake with 400), `keyterm`; no smart formatting, no diarization |
+| Formatting and analysis | `smart_format`, `diarize_model`, `summarize`, `sentiment`, `topics`, `intents`, redaction | Word timestamps, `numerals`, `redact` (`numbers` or `aggressive_numbers`), `keyterm`, `mip_opt_out`, `tag`; no smart formatting, no diarization |
 | Language | `language=<code>`, or `language=multi` for code-switching | The model name selects the language; `language_hint` biases `flux-general-multi` |
 
 Decision rule:
@@ -48,9 +48,9 @@ Nova options you will reach for, all query parameters on `/v1/listen`:
 - `smart_format=true` adds punctuation, paragraphs, and number formatting. It turns on `punctuate`, so do not set both.
 - `diarize_model=latest` labels speakers. It replaces the deprecated `diarize=true`; a request that sets both is rejected. Streaming accepts `latest` and `v1` only.
 - `language=multi` transcribes code-switched speech across the ten Nova-3 multilingual languages. Any single language code works too; the default is `en`.
-- `keyterm=<term>` boosts names, product terms, and jargon. It is accepted on Nova-3 and Flux only; other models return 400 and point you at `keywords`. Repeat the parameter once per term. The limit is 500 tokens across all keyterms in a request, and exceeding it fails the request with `Keyterm limit exceeded`; Deepgram's guidance is to stay well under it with the 20 to 50 terms that matter. Commas, semicolons, and `term:weight` are not rejected; the API treats the whole value as one literal term, so nothing you intended gets boosted.
+- `keyterm=<term>` boosts names, product terms, and jargon. It is accepted on Nova-3 and Flux STT only; other models, Nova-2 for example, use `keywords` instead. Repeat the parameter once per term. The limit is 500 tokens across all keyterms in a request, and exceeding it fails the request with `Keyterm limit exceeded`; Deepgram's guidance is to stay well under it with the 20 to 50 terms that matter. Commas, semicolons, and `term:weight` are not rejected; the API treats the whole value as one literal term, so nothing you intended gets boosted.
 - `summarize=v2`, `sentiment=true`, `topics=true`, and `intents=true` add audio intelligence. They run on prerecorded English audio only.
-- Live streaming uses `wss://api.deepgram.com/v1/listen?model=nova-3`, the same `Authorization` header, and binary audio frames. During silence send `{"type":"KeepAlive"}` as a text frame every 3 to 5 seconds; the connection closes after 10 seconds without audio. Finish with `{"type":"CloseStream"}`.
+- Live streaming uses `wss://api.deepgram.com/v1/listen?model=nova-3`, the same `Authorization` header, and binary audio frames. Send `{"type":"KeepAlive"}` as a text frame every 3 to 5 seconds during silence, as the keep-alive page says; after 10 seconds without audio or `KeepAlive` the connection closes with `NET-0001` (the Flux STT comparison page says 12 seconds). Finish with `{"type":"CloseStream"}`. Regional hosts take the same path and the same key: `wss://api.eu.deepgram.com/v1/listen`, `wss://api.au.deepgram.com/v1/listen`, `wss://api.in.deepgram.com/v1/listen`.
 
 ## Flux STT: conversational audio with turn detection
 
@@ -60,14 +60,19 @@ Connect over WebSocket. Flux has no REST path.
 wss://api.deepgram.com/v2/listen?model=flux-general-en&encoding=linear16&sample_rate=16000
 ```
 
-Send the same `Authorization: Token` header. Audio must be mono. For raw audio (`linear16`, `linear32`, `mulaw`, `alaw`, `opus`, `ogg-opus`) `encoding` and `sample_rate` are required; for WAV, Ogg, or WebM containers omit both. Send 80 ms chunks.
+Send the same `Authorization: Token` header. Audio must be mono. For raw audio (`linear16`, `linear32`, `mulaw`, `alaw`, `opus`, `ogg-opus`) `encoding` and `sample_rate` are required; for WAV, Ogg, or WebM containers omit both. Send 80 ms chunks. Flux STT has no `KeepAlive` message: WebSocket pings replace it, with a 60 second timeout. For in-region processing use `wss://api.eu.deepgram.com/v2/listen`, `wss://api.au.deepgram.com/v2/listen`, or `wss://api.in.deepgram.com/v2/listen` with the same key.
+
+Two query parameters on `/v2/listen` behave differently from Nova:
+
+- `redact` takes `numbers` or `aggressive_numbers`; any other value fails the handshake with 400. Each redacted span becomes a single `*`, not `[REDACTED]` or an entity tag.
+- `profanity_filter` is accepted by the API reference, while the Flux STT comparison page lists it as unsupported. Do not rely on `profanity_filter` on Flux STT until the comparison page and the reference agree.
 
 The server sends `Connected`, then a stream of `TurnInfo` messages. Each carries `event`, `turn_index`, `transcript`, `words` with timestamps, and `end_of_turn_confidence`. The `event` values:
 
 - `Update`: roughly every 0.25 s of audio while a turn is in progress.
 - `StartOfTurn`: the speaker began. Use it to interrupt your agent (barge-in).
 - `EndOfTurn`: the speaker finished. Send the transcript to your language model. It carries `trigger`: `model`, `manual`, or `timeout`.
-- `EagerEndOfTurn` and `TurnResumed`: emitted only when you set `eager_eot_threshold`. Start drafting a reply on the first; cancel it on the second.
+- `EagerEndOfTurn` and `TurnResumed`: emitted only when you set `eager_eot_threshold`. Start drafting a reply on the first; cancel it on the second. The `EndOfTurn` transcript matches the `EagerEndOfTurn` transcript exactly. Expect 50 to 70% more LLM calls in exchange for roughly 100 to 200 ms less end-to-end latency; start with `EndOfTurn` only.
 
 Three query parameters tune turn detection, and all three can change mid-stream through the `Configure` message below:
 
@@ -79,9 +84,15 @@ Three query parameters tune turn detection, and all three can change mid-stream 
 
 Client control messages, each a JSON text frame:
 
-- `{"type":"Configure","thresholds":{"eot_threshold":0.8},"keyterms":["Deepgram"],"numerals":true}` changes thresholds, keyterms, `language_hints`, or `numerals` without reconnecting. Omitted fields keep their values; a `keyterms` array replaces the whole list. `numerals` starts from the `numerals` query parameter and applies to transcripts Flux STT sends after it processes the update, never to transcripts already sent. It must be a JSON boolean: the string `"true"` fails schema validation, Flux STT returns an `Error` with code `UNPARSABLE_CLIENT_MESSAGE`, and the connection closes. The reply is `ConfigureSuccess`, which echoes the full active configuration including `numerals`, or `ConfigureFailure`, which carries `code` and `description` naming the rejected field and leaves the previous configuration in place.
-- `{"type":"ForceEndTurn"}` (added August 28, 2026) ends the current turn on your own signal: a push-to-talk release, a DTMF tone, a send button. Flux STT emits `EndOfTurn` with `"trigger":"manual"`. With no active turn the message is ignored and a `Warning` with code `FORCE_END_TURN_NO_ACTIVE_TURN` comes back. Set `eot_threshold=1.0` to drive every turn yourself.
-- `{"type":"CloseStream"}` closes the stream.
+- `{"type":"Configure","thresholds":{"eot_threshold":0.8},"keyterms":["Deepgram"],"numerals":true}` changes thresholds, keyterms, `language_hints`, or `numerals` without reconnecting.
+  - Shape and atomicity: the turn-detection thresholds go under `thresholds`, as in the example; omitted fields keep their values. All fields in one message apply together or not at all: if one fails validation, none take effect.
+  - `keyterms`: the array replaces the whole list and holds at most 100 plain terms (no `term:weight` syntax).
+  - `language_hints`: `[]` clears the hints and reverts to auto-detect, while omitting the field or sending `null` keeps them.
+  - `numerals`: starts from the `numerals` query parameter and applies to transcripts Flux STT sends after it processes the update, never to transcripts already sent. It must be a JSON boolean: the string `"true"` fails schema validation, Flux STT returns an `Error` with code `UNPARSABLE_CLIENT_MESSAGE`, and the connection closes.
+  - The reply is `ConfigureSuccess`, which echoes the full active configuration including `numerals`, or `ConfigureFailure`, which carries `code` and `description` naming the rejected field and leaves the previous configuration in place.
+- `{"type":"ForceEndTurn"}` (added August 28, 2026) ends the current turn on your own signal: a push-to-talk release, a DTMF tone, a send button. Flux STT emits `EndOfTurn` with `"trigger":"manual"`. With no active turn the message is ignored and a `Warning` with code `FORCE_END_TURN_NO_ACTIVE_TURN` comes back. Set `eot_threshold=1.0` to drive every turn yourself, keeping `eot_timeout_ms` high as a backstop (`"trigger":"timeout"`).
+  - SDK methods: JS 5.9.0 `sendForceEndTurn`, Python 7.8.0 `send_force_end_turn`, Java 0.9.0 `sendForceEndTurn`, Go 3.8.0 `ForceEndTurn()`, Rust 0.10.1 `force_end_turn()`, .NET 7.1.0 `SendForceEndTurn()` on the concrete `FluxWebSocketClient`, not the interface.
+- `{"type":"CloseStream"}` finishes decoding the audio already received, emits the matching `Update` messages, and closes the connection without a WebSocket close status code. It does not finalize the active turn: no `EndOfTurn` is emitted, so the last message is an interim `Update`. To end on a final transcript send `ForceEndTurn` first, then `CloseStream`; messages are processed in order, so the turn ends and then the connection closes. Sent the other way round, the `ForceEndTurn` has no effect.
 
 For non-English or mixed-language calls use `model=flux-general-multi`, optionally with repeated `language_hint=<code>` parameters (for example `language_hint=en&language_hint=es`). Without hints the model detects the language itself. `TurnInfo` then includes `languages` and `languages_hinted`. `numerals` formats every number on `flux-general-en`; on `flux-general-multi` it formats English, Spanish, French, German, Russian, Portuguese, Italian, and Dutch, and leaves Hindi and Japanese numbers as spoken.
 
@@ -95,6 +106,7 @@ For non-English or mixed-language calls use `model=flux-general-multi`, optional
 6. `ForceEndTurn` on `/v1/listen` returns an error; it exists only on Flux.
 7. `smart_format`, `diarize`, and the intelligence parameters are not available on `/v2/listen`. Speaker labels and summaries are a Nova job.
 8. A `KeepAlive` sent as a binary frame is mishandled. Send control messages as text frames and audio as binary frames.
+9. `{"type":"Configure","features":{"numerals":true}}` is the `/v1/listen` form. Flux STT rejects the `features` nesting and closes the connection; on `/v2/listen` send `numerals` as a top-level field, `{"type":"Configure","numerals":true}`.
 
 ## Pricing
 
@@ -107,7 +119,9 @@ Deepgram bills speech-to-text per minute of audio. Figures change, so read them 
 - You want a runnable app with a UI: `starters` skill (the `transcription`, `live-transcription`, and `flux` features).
 - You want a one-feature snippet under 50 lines: `recipes` skill, https://github.com/deepgram/recipes.
 - You are wiring Deepgram into Twilio, LiveKit, Pipecat, LangChain, or another platform: `examples` skill.
-- You want language-idiomatic SDK code: install `deepgram-{js,python,java,go,rust,dotnet}-speech-to-text` for Nova and `deepgram-{lang}-conversational-stt` for Flux STT from the matching SDK repository (`npx skills add deepgram/deepgram-python-sdk`, and so on). Mid-stream `numerals` through `Configure` is in the JavaScript SDK from 5.13.0 (`socket.sendConfigure({type:"Configure", numerals:true})`), the Python SDK from 7.11.0 (`connection.send_configure(ListenV2Configure(numerals=True))`), and the Java SDK from 0.10.2 (`sendConfigure(ListenV2Configure.builder().numerals(true).build())`). The `deepgram-{lang}-conversational-stt` skills do not cover it, so take the message shape from the `Configure` bullet in this skill.
+- You want language-idiomatic SDK code: install `deepgram-{js,python,java,go,rust,dotnet}-speech-to-text` for Nova and `deepgram-{lang}-conversational-stt` for Flux STT from the matching SDK repository (`npx skills add deepgram/deepgram-python-sdk`, and so on).
+- You want mid-stream `numerals` through `Configure` from an SDK: the `deepgram-{lang}-conversational-stt` skills do not cover it, so take the message shape from the `Configure` bullet in this skill. The JavaScript SDK sends it from 5.13.0 (`socket.sendConfigure({type:"Configure", numerals:true})`), the Python SDK from 7.11.0 (`connection.send_configure(ListenV2Configure(numerals=True))`), and the Java SDK from 0.10.2 (`sendConfigure(ListenV2Configure.builder().numerals(true).build())`).
+- You want mid-stream `numerals` on the Go 3.8.0, Rust 0.11.0, or .NET 7.1.1 SDK: their Configure types carry no `numerals` field, so send the raw JSON Configure message or set `numerals` on the connection URL.
 - You want analysis and not just the transcript (`summarize`, `sentiment`, `topics`, `intents`, `detect_entities` on `/v1/listen`): `audio-intelligence` skill. For text you already have, `/v1/read` and the `text-intelligence` skill.
 - You want text-to-speech or a full voice agent: the `text-to-speech` or `voice-agent` skill.
 - You want a shell command rather than application code: `cli` skill.
@@ -128,6 +142,11 @@ Deepgram bills speech-to-text per minute of audio. Figures change, so read them 
 - Flux state machine: https://developers.deepgram.com/docs/flux/state
 - Flux STT turn-detection parameters (the threshold table): https://developers.deepgram.com/docs/flux/configuration
 - Flux control messages: https://developers.deepgram.com/docs/flux/configure, https://developers.deepgram.com/docs/flux/force-end-turn, https://developers.deepgram.com/docs/flux/close-stream
+- Flux STT feature matrix (profanity filter, redaction scope, control messages): https://developers.deepgram.com/docs/flux/feature-overview
+- Bring your own turn detection (`eot_threshold=1.0` plus `ForceEndTurn`): https://developers.deepgram.com/docs/flux/own-turn-detection
+- Flux STT in a voice agent and eager end of turn (LLM call cost): https://developers.deepgram.com/docs/flux/agent and https://developers.deepgram.com/docs/flux/voice-agent-eager-eot
+- Redaction, including the Flux STT `*` placeholder: https://developers.deepgram.com/docs/redaction
+- Regional endpoints (EU, AU, India hosts for `/v1/listen` and `/v2/listen`): https://developers.deepgram.com/reference/regional-endpoints
 - Numerals, including the Flux STT language list and mid-stream toggling: https://developers.deepgram.com/docs/numerals
 - ForceEndTurn release note: https://developers.deepgram.com/changelog/2026/8/28
 - Flux multilingual: https://developers.deepgram.com/docs/flux/language-prompting

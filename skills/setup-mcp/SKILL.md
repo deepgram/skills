@@ -67,7 +67,7 @@ Check first: `dg --version` (or `deepctl --version`, or `where dg` on Windows). 
 
 ```sh
 # macOS / Linux — Homebrew (also brings in ffmpeg and portaudio)
-brew tap deepgram/tap && brew install deepgram
+brew install deepgram/tap/deepgram
 
 # macOS / Linux — install script
 curl -fsSL https://deepgram.com/install.sh | sh
@@ -87,6 +87,11 @@ To upgrade, use the installer that put it there: `pip install -U deepctl`,
 `uv tool upgrade deepctl`, `pipx upgrade deepctl`, `brew upgrade deepgram`, or re-run the install
 script. `dg update --check-only` reports whether a newer release exists; on a pip install, bare
 `dg update` reports `installation_method: null` instead of upgrading.
+
+The fully qualified Homebrew name matters: Homebrew 6 loads a third-party formula only after it
+is trusted, and `brew install deepgram/tap/deepgram` trusts that one formula, where
+`brew tap deepgram/tap && brew install deepgram` fails until a separate `brew trust` step. The
+tap formula pins `deepctl-0.2.26`; pip, uv, and pipx install 0.3.1.
 
 ### A2. Authenticate — required
 
@@ -203,6 +208,17 @@ Source: <https://github.com/deepgram/mcp>.
 Use `https://developers.deepgram.com/_mcp/server`. It answers unauthenticated, needs no API
 key, and exposes one tool, `searchDocs`, which returns documentation passages with source URLs.
 
+It is not a plain liveness URL. `HEAD` returns 404, a `GET` with the MCP
+`Accept: application/json, text/event-stream` header returns 405, and a bare `GET` returns a
+JSON descriptor of the server rather than an MCP response. Only a `POST` `initialize` exercises
+the server; it answers 200 with `serverInfo.name` `fern-docs-mcp-server`:
+
+```sh
+curl -s -X POST https://developers.deepgram.com/_mcp/server \
+  -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"probe","version":"0"}}}'
+```
+
 #### Claude Code
 
 ```sh
@@ -276,7 +292,10 @@ For Path C, add:
 > parameters, voice agents, or model capabilities.
 
 Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/developer-tools/agentic-tools)
-for more details.
+for more details, with one caveat: its "Docs MCP server" section lists
+`https://api.dx.deepgram.com/kapa/mcp` and `https://deepgram.mcp.kapa.ai` with no authentication
+step although both answer an unauthenticated `initialize` with 401, and its Docs MCP section
+does not mention `/_mcp/server`, although the page header names it.
 
 ## Troubleshooting
 
@@ -318,6 +337,6 @@ the API serves right now, not what the package version implies. Reconnect to pic
 
 ## Sources
 
-- Deepgram CLI — <https://github.com/deepgram/cli>
-- `deepgram-mcp` — <https://github.com/deepgram/mcp>
-- Deepgram Agentic Tools — <https://developers.deepgram.com/developer-tools/agentic-tools>
+- Deepgram CLI: <https://github.com/deepgram/cli>
+- `deepgram-mcp`: <https://github.com/deepgram/mcp>
+- Deepgram Agentic Tools: <https://developers.deepgram.com/developer-tools/agentic-tools> (lists the kapa URLs without their required credentials; its Docs MCP section omits `/_mcp/server`, which only the page header names)
