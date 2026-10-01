@@ -113,10 +113,11 @@ git -c url."https://github.com/".insteadOf="git@github.com:" \
 
 `dg init` is also marked alpha, and its templates gallery is a separate list from the matrix
 below rather than a subset of it. It carries 44 templates with no `flux` or `flux-tts` entries;
-it still lists `sinatra-transcription`, whose repository is archived; and it lists `nextjs-*`
-templates that now redirect out of `deepgram-starters` to `deepgram-devs`, which is why there is
-no `nextjs` row below. Treat the matrix as authoritative and fall back to `git clone`. See the
-`cli` skill for installing `deepctl` and for the rest of `dg init`.
+it still lists `sinatra-transcription`, whose repository is archived and private, so the clone
+returns 404 for anyone outside Deepgram; and it lists `nextjs-*` templates that now redirect out
+of `deepgram-starters` to `deepgram-devs`, which is why there is no `nextjs` row below. Treat
+the matrix as authoritative and fall back to `git clone`. See the `cli` skill for installing
+`deepctl` and for the rest of `dg init`.
 
 ## The `{feature}-html` repos are not starters
 

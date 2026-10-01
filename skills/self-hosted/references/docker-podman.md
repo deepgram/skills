@@ -201,7 +201,6 @@ On FIPS images, MP3 and FLAC output is a known issue — set `encoding` explicit
 - Docker/Podman overview: https://developers.deepgram.com/docs/dockerpodman
 - Deploy STT services: https://developers.deepgram.com/docs/deploy-stt-services
 - Deploy TTS services: https://developers.deepgram.com/docs/deploy-tts-services
-- Deploy Deepgram services: https://developers.deepgram.com/docs/deploy-deepgram-services
 - Flux STT self-hosted: https://developers.deepgram.com/docs/flux-self-hosted
 - Flux TTS self-hosted: https://developers.deepgram.com/docs/deploy-flux-tts
 - Per-cloud and bare metal: https://developers.deepgram.com/docs/aws-docker-podman, https://developers.deepgram.com/docs/gcp-docker-podman, https://developers.deepgram.com/docs/oci-docker-podman, https://developers.deepgram.com/docs/azure-docker-podman, https://developers.deepgram.com/docs/bare-metal

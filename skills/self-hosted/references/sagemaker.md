@@ -16,6 +16,8 @@ Choose it when you are AWS-only and want less operational surface than Docker or
 
 The tradeoffs versus running containers yourself, and SageMaker pricing, are laid out at [Amazon SageMaker](https://developers.deepgram.com/docs/amazon-sagemaker).
 
+AWS field employees can reach Deepgram models through the [AWS Marketplace Field Demonstration Program](https://docs.aws.amazon.com/marketplace/latest/userguide/field-demonstration-program.html); Deepgram is an eligible provider.
+
 ## Product listings
 
 Deepgram publishes to [AWS Marketplace](https://aws.amazon.com/marketplace/search/results?searchTerms=deepgram&CREATOR=6efa21f9-9a33-4cae-ba44-756436fa71dd&FULFILLMENT_OPTION_TYPE=SAGEMAKER_MODEL&filters=CREATOR%2CFULFILLMENT_OPTION_TYPE) (no AWS login needed to browse).
@@ -30,6 +32,16 @@ Individual languages are delivered as **versions** of a model package. One monol
 ## Instance types
 
 Every product needs a GPU instance. Request [SageMaker quota](https://developers.deepgram.com/docs/request-sagemaker-quota) before creating an endpoint.
+
+Deploy on an ordered **instance pool** rather than a single instance type. A single type has no fallback: when the Availability Zone is short of that GPU, the endpoint goes `Failed` (`Request to service failed` a few minutes in, or `InsufficientInstanceCapacity`), and that happens routinely for popular GPU types. With [instance pools](https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-heterogeneous.html), SageMaker tries each type in priority order and falls back to the next when one is capacity-constrained. Order the pool:
+
+1. The listing's recommended type first (`ml.g6.2xlarge` for STT): the type Deepgram validated the model on, and the best price for the performance.
+2. Same-or-newer generations with similar per-instance capacity next (`g6`, then `g6e`, then `g7`). Similar capacity matters if you autoscale, because the predefined scaling metrics are per instance and do not account for a mixed fleet.
+3. Older generations last, as insurance (`g5`, and `g4dn` where supported).
+4. Never a type the product does not support: `g4dn` for Flux STT, `g5` and `g4dn` for Flux TTS, any single-GPU type for Aura-2.
+5. Up to 5 types; three is the sweet spot.
+
+`VariantInstanceProvisionTimeoutInSeconds` is the per-type wait before SageMaker moves to the next type: `300` is recommended (AWS allows `60` to `3600`), so a three-type pool can sit in `Creating` for about 15 minutes before it fails. Quota does not fall back: SageMaker validates the quota of every type in the pool at `CreateEndpoint`, and a type with a regional quota below `1` fails the call with `ResourceLimitExceeded` regardless of which type would have been used. CLI and Boto3 examples: [Choose instance types](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#choose-instance-types).
 
 | Product | Recommended | Also supported | Not supported |
 |---|---|---|---|
@@ -158,7 +170,7 @@ Examples: `examples/stt.mjs`, `tts.mjs`, `flux.mjs`, `flux-tts.mjs`, `live-mic.m
 
 ### Java
 
-Requires **Java 11+** and Deepgram Java SDK **v0.4.0+** — the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.10.0`, which satisfies the floor. Pin deliberately and test the pairing.
+Requires **Java 11+** and Deepgram Java SDK **v0.4.0+**: the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.10.2`, which satisfies the floor. Pin deliberately and test the pairing.
 
 ```groovy
 dependencies {

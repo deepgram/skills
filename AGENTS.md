@@ -36,6 +36,12 @@ npx skills add deepgram/skills --agent claude-code -y   # one agent, every skill
 npx skills add deepgram/skills --skill api -y           # one skill
 ```
 
+`npx skills add` clones the repository with `git`. On an image without it (a
+bare `node:22-alpine`, for example) every target fails with `Failed to clone
+...: Error: spawn git ENOENT`, yet the command exits 0 and installs nothing.
+Install `git` first and check for the `SKILL.md` files rather than trusting
+the exit code.
+
 Claude Code plugin route: `/plugin marketplace add deepgram/skills`, then
 `/plugin install deepgram@deepgram-agent-skills`.
 
@@ -80,6 +86,7 @@ Adding a skill also means adding its path to `plugins[0].skills` in
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `npx skills add deepgram/<repo>` fails with a not-found or auth error | the target repository is private or does not exist | only the six public SDK repositories listed in README.md carry installable skills |
+| every target fails with `spawn git ENOENT`, exit code 0, nothing installed | `git` is absent from the container or CI image; `npx skills add` shells out to it | install `git` (`apk add git` on Alpine) before running the installer |
 | `bun: command not found` | bun not installed | install from https://bun.sh; the generation scripts are bun-only |
 | `ENOENT ... specs/openapi.yml` from `generate-skills.ts` | `fetch-specs.ts` was not run first; `specs/` is gitignored, so it is absent in a fresh clone | run both regeneration commands in order |
 | Regenerated `api` skill shows unexpected churn | the upstream specs moved | inspect the spec diff first; the specs are the source of truth |

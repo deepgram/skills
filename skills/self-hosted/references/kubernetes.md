@@ -181,7 +181,7 @@ const deepgram = new DeepgramClient({
 
 Enable the **Billing** container, which validates a license locally and journals usage instead of calling `license.deepgram.com`.
 
-- Architecture: `API/Engine → Billing`, or `API/Engine → License Proxy → Billing` for HA.
+- Architecture: `API/Engine → Billing`, or `API/Engine → License Proxy → Billing` for HA. The chained form needs a chart newer than `0.46.0`: on `0.46.0` and earlier, with `billing.enabled` and `licenseProxy.enabled` both `true`, the `billing` condition takes precedence, so API and Engine connect to Billing directly and the deployed License Proxy receives no traffic. The fix is the `Unreleased` entry in `charts/deepgram-self-hosted/CHANGELOG.md`.
 - Obtain from Deepgram: a license key, a license file (`.dg`, a one-line JSON file), and registry access for `quay.io/deepgram/*` including the Billing image.
 - Configure `billing.enabled`, `billing.licenseFile.secretRef` (key `license.dg` by default), and `global.deepgramLicenseSecretRef`.
 - Billing listens on `8443` for license verification and `8080` for the `/v1/certificates` endpoint.
