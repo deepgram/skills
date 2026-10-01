@@ -252,7 +252,7 @@ for natural voice conversations
   - `language_hints` string[] — Language hints to constrain and prioritize language detection.
     Only valid when the model is flux-general-multi. If this field is not supplied,
     the session will continue to use the currently configured value.
-  - `numerals` boolean (default: `false`) — Numerals converts numbers from written format to numerical format. Applies to turns transcribed after the update.
+  - `numerals` boolean (default: `false`) — Numerals converts numbers from written format to numerical format. Applies to transcripts Flux STT sends after it processes the update.
 
 #### Server → Client Messages
 
@@ -316,6 +316,7 @@ for natural voice conversations
     (for example, `keyterm=customer%20service`). Do not separate keyterms
     with commas, semicolons, or line breaks.
   - `language_hints` string[] — The currently active language hints. Only applicable to the flux-general-multi model.
+  - `numerals` boolean (default: `false`) — Whether numeral formatting is enabled for transcripts Flux STT sends after it processes the update.
   - `sequence_id` integer **(required)** — Starts at `0` and increments for each message the server sends
     to the client.  This includes messages of other types, like
     `TurnInfo` messages.
@@ -327,6 +328,18 @@ for natural voice conversations
   - `sequence_id` integer **(required)** — Starts at `0` and increments for each message the server sends
     to the client.  This includes messages of other types, like
     `TurnInfo` messages.
+  - `code` string — Failure code identifying the rejected configuration
+  - `description` string — A human-readable description of the configuration failure
+
+**ListenV2Warning** — Receive a warning; the server keeps the connection open
+
+  - `type` `Warning` **(required)** — Message type identifier
+  - `request_id` string **(required)** — The unique identifier of the request
+  - `sequence_id` integer **(required)** — Starts at `0` and increments for each message the server sends
+    to the client. This includes messages of other types, like
+    `TurnInfo` messages.
+  - `code` string **(required)** — Warning code identifying the condition, in `SCREAMING_SNAKE_CASE`
+  - `description` string **(required)** — A human-readable description of the warning
 
 **ListenV2FatalError** — Receive a fatal error message
 
