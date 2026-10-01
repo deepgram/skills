@@ -67,8 +67,10 @@ with `model_uuid`, `input_tokens`, and `output_tokens`. Entity labels come back 
 (`NAME`, `ORGANIZATION`, `LOCATION_CITY`, `MONEY`, `DATE_INTERVAL`); Deepgram documents over 50
 types. [6]
 
-On the live socket, `detect_entities=true` adds a **top-level** `entities` array to each `Results`
-message, next to `channel` — not inside `channel.alternatives[0]`. Same field shape as above.
+On the live socket, `detect_entities=true` adds a **top-level** `entities` array to `Results`
+messages whose `is_final` is `true`, next to `channel` and not inside `channel.alternatives[0]`.
+Interim results carry no `entities` key, and a final result with nothing detected carries
+`"entities": []`. Same field shape as above.
 
 ## Narrowing topics and intents
 
