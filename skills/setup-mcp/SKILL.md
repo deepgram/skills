@@ -83,8 +83,10 @@ pipx install deepctl
 iwr https://deepgram.com/install.ps1 -useb | iex
 ```
 
-To upgrade, use the CLI's own updater: `dg update` (add `--check-only` to check without
-installing). If it was installed with Homebrew, `brew upgrade deepgram` also works.
+To upgrade, use the installer that put it there: `pip install -U deepctl`,
+`uv tool upgrade deepctl`, `pipx upgrade deepctl`, `brew upgrade deepgram`, or re-run the install
+script. `dg update --check-only` reports whether a newer release exists; on a pip install, bare
+`dg update` reports `installation_method: null` instead of upgrading.
 
 ### A2. Authenticate — required
 
@@ -164,6 +166,9 @@ The MCP server without the rest of the CLI. One package, one binary.
 pip install deepgram-mcp
 export DEEPGRAM_API_KEY=your_key_here
 ```
+
+`deepgram-mcp` is a PyPI package. The npm package of the same name is unrelated third-party code
+that also asks for `DEEPGRAM_API_KEY`, so do not run `npx deepgram-mcp`.
 
 #### Claude Code
 
@@ -308,7 +313,8 @@ server name if the user wants to keep both.
 the API serves right now, not what the package version implies. Reconnect to pick up new tools.
 
 **Anything else on Path A**
-→ Verify `dg --version` works and `dg mcp` runs in a terminal without errors, then `dg update`.
+→ Verify `dg --version` works and `dg mcp` runs in a terminal without errors, then
+`dg update --check-only` to see whether a newer release exists.
 
 ## Sources
 
