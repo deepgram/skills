@@ -7,6 +7,7 @@ description: >
   updates, and function calling that your own client executes. Use when someone says
   "voice agent", "voice bot", "speech-to-speech", "talk to an AI on the phone",
   "agent.deepgram.com", "Settings message", "FunctionCallRequest", "barge-in",
+  "reusable agent configuration", "defer_until_eot",
   "Twilio voice agent", or asks whether to build on Deepgram directly or through
   LiveKit Agents, Pipecat, Vapi, or Retell. Routes to the api, docs, starters, recipes,
   examples, and per-language SDK skills for the full reference.
@@ -26,7 +27,7 @@ Both paths are supported; Deepgram publishes guides for LiveKit Agents and Pipec
 | A Deepgram-managed LLM (OpenAI, Anthropic, Google, NVIDIA) billed through your Deepgram account is fine, or you point `think.endpoint` at your own OpenAI-compatible endpoint. [6] | You need per-stage control the agent does not expose: your own LLM loop, a TTS vendor Deepgram does not proxy, custom voice activity detection, or your own turn logic. |
 | Your tools can run in your client or behind an HTTP endpoint you own (`FunctionCallRequest` / `FunctionCallResponse`). [9][10] | Your tools live inside the framework's agent runtime. |
 
-For the orchestrator path, load the `examples` skill (LiveKit, Pipecat) and the SDK `conversational-stt` and `text-to-speech` skills. Deepgram's Pipecat guide runs Flux STT and Flux TTS (`flux-alexis-en`) underneath; the LiveKit guide starts on `nova-3` and `aura-2-thalia-en` and shows `flux-general-en` and `flux-alexis-en` as the Flux swap. [14] The rest of this skill covers the Voice Agent API path.
+For the orchestrator path, load the `examples` skill (LiveKit, Pipecat) and the SDK `conversational-stt` and `text-to-speech` skills. Deepgram's Pipecat guide runs Flux STT and Flux TTS (`flux-alexis-en`) underneath; the LiveKit guide starts on `nova-3` and `aura-2-thalia-en` and shows `flux-general-en` and `flux-alexis-en` as the Flux STT and Flux TTS swap. [14] The rest of this skill covers the Voice Agent API path.
 
 ## First request
 
@@ -69,10 +70,18 @@ Then open the WebSocket to `wss://agent.deepgram.com/v1/agent/converse` with the
 
 Field notes, from the configure and model pages [3][6][7][8]:
 
-- `listen`: Flux (`flux-general-en`, or `flux-general-multi` with `language_hints`) requires `"version": "v2"` and gives model-integrated end-of-turn detection. Nova (`nova-3`) uses `v1`, the default, and adds `smart_format` and `language`. Drop `version` with a Flux model and the agent falls back to the v1 endpoint, where `flux-general-en` is not a valid model. [7][20]
-- `think`: `provider.type` is `open_ai`, `anthropic`, `google`, or `nvidia` (managed; `endpoint` optional) or `groq` or `aws_bedrock` (`endpoint` required). Bring your own LLM by keeping `type: open_ai` and setting `endpoint.url` to any OpenAI Chat Completions-compatible URL, with `endpoint.headers` for its auth. Pass an array of providers to get an ordered fallback chain. Managed-LLM prompts are limited to 25,000 characters. [6]
-- `speak`: `"version": "v2"` selects Flux TTS (`flux-{voice}-{language}`); `v1`, the default when you name a provider, selects Aura (`aura-2-thalia-en`). Omit `agent.speak` entirely and you get Flux TTS with `flux-kit-en`. Flux TTS streams raw audio only: `encoding` must be `linear16`, `mulaw`, or `alaw`, `container` must be `none`, and `mp3` or `wav` returns `INVALID_SETTINGS`. Third-party TTS (`open_ai`, `eleven_labs`, `cartesia`, `aws_polly`) takes an `endpoint`, except Deepgram-managed Cartesia, which needs none. [8]
-- `agent.context.messages` replays earlier turns as `{"type":"History","role":"user","content":"..."}` so a new session continues an old one. [3]
+- `listen`: Flux STT (`flux-general-en`, or `flux-general-multi` with `language_hints`) requires `"version": "v2"` and gives model-integrated end-of-turn detection. Nova (`nova-3`) uses `v1`, the default, and adds `smart_format` and `language`. Drop `version` with a Flux STT model and the agent falls back to the v1 endpoint, where `flux-general-en` is not a valid model. [7][20]
+- `think`: `provider.type` is `open_ai`, `anthropic`, `google`, or `nvidia` (managed; `endpoint` optional) or `groq` or `aws_bedrock` (bring your own; `endpoint` required). `nvidia` is on the LLM models page but not in the `references/agent.md` provider enum, so check its model name against the models endpoint above. `aws_bedrock` authenticates with `provider.credentials` (`type` `iam`, or `sts` plus `session_token`, with `region`, `access_key_id`, and `secret_access_key`) and points `endpoint.url` at `https://bedrock-runtime.{region}.amazonaws.com/`. Bring your own LLM by keeping `type: open_ai` and setting `endpoint.url` to any OpenAI Chat Completions-compatible URL, with `endpoint.headers` for its auth. Pass an array of providers to get an ordered fallback chain. Managed-LLM prompts are limited to 25,000 characters. [6]
+- `speak`: `"version": "v2"` selects Flux TTS (`flux-{voice}-{language}`); `v1`, the default when you name a provider, selects Aura (`aura-2-thalia-en`). Omit `agent.speak` entirely and you get Flux TTS with `flux-kit-en`. Flux TTS streams raw audio only: `encoding` must be `linear16`, `mulaw`, or `alaw`, `container` must be `none`, and `mp3` or `wav` returns `INVALID_SETTINGS`. `provider.speed` (default `1.0`) is `0.5` to `1.5` in `0.05` steps on Flux TTS and any value from `0.7` to `1.5` on Aura; a value the family does not accept ends the session with `FAILED_TO_SPEAK`. `provider.expressivity` (whole numbers `-2` to `2`, default `0`) is Flux TTS (`v2`) only and fixed for the session; it is beta and `0` is the only value validated for production. Third-party TTS (`open_ai`, `eleven_labs`, `cartesia`, `aws_polly`) takes an `endpoint` with `url` and `headers`, and `wss` URLs are accepted for Eleven Labs only; `aws_polly` also requires `credentials` (`type` `sts` or `iam`, with `region`, `access_key_id`, `secret_access_key`, and `session_token` for STS). Deepgram-managed Cartesia (`type: cartesia` with no `endpoint`) is the exception. [8][34]
+- `agent.context.messages` replays earlier turns as `{"type":"History","role":"user","content":"..."}` or `{"type":"History","function_calls":[{"id","name","client_side","arguments","response"}]}` so a new session continues an old one. While `Settings.flags.history` is `true` (the default) the server sends `History` messages in the same two shapes; set it to `false` to turn them off. [3][35]
+- Other knobs, with ranges in `references/agent.md`: `think.context_length` (`max` or a character count; custom `think.endpoint` only), `think.provider.reasoning_mode` (`none` to `high`, on `open_ai` and `groq`), and the top-level `tags`, `experimental`, and `mip_opt_out`. [3][12]
+- Conversational Mode (`agent.think_conversational.provider`: backchanneling, presence checks, frustration detection) is invite-only Early Access; a `Settings` message that names it from an unenrolled project is rejected with `UNPARSABLE_CLIENT_MESSAGE`, and its page is not in the documentation index. [36]
+
+## Reusable agent configurations
+
+`Settings.agent` is either the full `agent` object above or a Reusable Agent Configuration UUID string, the same `agent: "YOUR_AGENT_ID"` form the Browser Agent SDK takes. Create one with `POST https://api.deepgram.com/v1/projects/{project_id}/agents` and a body whose `config` is the JSON string of the `agent` block (plus optional `metadata`); the response's `agent_id` is the UUID. `GET .../agents` lists them, `GET .../agents/{agent_id}` reads one, `PUT .../agents/{agent_id}` changes `metadata` only (`config` is immutable; delete and recreate to change it), and `DELETE .../agents/{agent_id}` removes it. Deleting a configuration that a running service still references breaks that service, so move its sessions to a new UUID first. A `Settings` message with a UUID that does not resolve ends the session with `INVALID_AGENT_ID`; `AGENT_ID_NOT_SUPPORTED` means the server does not resolve UUIDs at all (a self-hosted build in unauthenticated mode). [32][13]
+
+Template variables, at `POST/GET /v1/projects/{project_id}/agent-variables` and `GET/PATCH/DELETE .../agent-variables/{variable_id}`, hold values a `config` references by key in the `DG_<NAME>` form (uppercase letters, digits, `_`, `-`), written unquoted inside the JSON string. A variable can stand in for any JSON value, a whole provider object included, and `is_sensitive` must be `false`. Every project member can read configurations and variables, so keep API keys and passwords out of them. Full request and response schemas: `references/agent.md`. [32]
 
 ## Message lifecycle
 
@@ -84,6 +93,7 @@ Field notes, from the configure and model pages [3][6][7][8]:
 | server | `ConversationText` (`role` is `user` or `assistant`, `content`) | Show the transcript. [11] |
 | server | `AgentThinking` (`content`) | Optional status. The LLM is working, possibly choosing a function. [11] |
 | server | `FunctionCallRequest` | See the next section. [9] |
+| server | `FunctionCallCancelled` (`functions[]` with `id`, `name`) | The user started speaking again. Stop work on each `id` and do not send a `FunctionCallResponse` for it; a late one is dropped. [33] |
 | server | `AgentStartedSpeaking` | The reply's audio is starting. [12] |
 | server | `LatencyReport` | Per-turn latency breakdown, sent automatically after each turn: `stt_latency`, `ttt_token_latency`, `ttt_text_latency`, `ttt_tool_latency`, `ttt_thinking_latency`, `tts_latency`, `total_latency`. All are floats in seconds and each is optional, so read them defensively. [31] |
 | server | binary frames | Agent audio. Queue it for playback. [5] |
@@ -95,7 +105,7 @@ Mid-call updates, each acknowledged by a matching `*Updated` event [16]:
 
 - `UpdatePrompt` `{"type":"UpdatePrompt","prompt":"..."}` adds to the current prompt; it does not replace it. Ack: `PromptUpdated`. [16]
 - `UpdateSpeak` `{"type":"UpdateSpeak","speak":{"provider":{...}}}` changes the voice. With Flux TTS the new voice starts on the next turn. Ack: `SpeakUpdated`. [16]
-- `UpdateListen` adjusts Flux end-of-turn thresholds, keyterms, and language hints. `UpdateThink` replaces the whole think block, functions included. Acks: `ListenUpdated`, `ThinkUpdated`. `ForceEndTurn` ends the user's turn now and needs a Flux (`v2`) listen provider. [16][17]
+- `UpdateListen` changes the listen `model` and `language` mid-session and, on a Flux STT (`v2`) provider, the end-of-turn thresholds and language hints; keyterms update mid-session on Flux STT models only. `UpdateThink` replaces the whole think block, functions included. Acks: `ListenUpdated`, `ThinkUpdated`. `ForceEndTurn` ends the user's turn now and needs a Flux STT (`v2`) listen provider: with any other listen provider the server sends a `FORCE_END_TURN_UNSUPPORTED` warning and the turn does not end, and with no turn in progress it is ignored silently. [16][17]
 - `InjectAgentMessage` `{"type":"InjectAgentMessage","message":"...","behavior":"default"}` makes the agent speak. `default` and `queue` are refused with `InjectionRefused` while the user is speaking; `queue` waits behind the agent's own turn; only `interrupt` is never refused. `InjectUserMessage` `{"type":"InjectUserMessage","content":"..."}` sends typed user text. [18][5]
 
 ## Function calling: your client runs the call
@@ -106,6 +116,8 @@ The server sends one `FunctionCallRequest` with a `functions` array. Each item h
 
 - `client_side: true`: run the function, then send `{"type":"FunctionCallResponse","id":"<same id>","name":"get_weather","content":"<result text or JSON string>"}`. Pass `thought_signature` back unchanged when present. The agent speaks once your response arrives. [9][10]
 - `client_side: false`: the server ran it (an `endpoint` function). No client action; the server's own `FunctionCallResponse` is informational. [10]
+
+Calls dispatch speculatively. The agent starts thinking as soon as speech-to-text is moderately confident the user has stopped, and a function call goes out the moment the LLM emits it, before the turn is confirmed. If the user keeps talking, the turn resumes and the server sends `FunctionCallCancelled` for every call you already received. Set `defer_until_eot: true` on a function whose side effect cannot be undone (ending a call, booking, charging a card): a deferred call is held until the turn is confirmed and discarded if the turn resumes, and deferring one function does not delay the others. An `endpoint` function that already reached your server is not rolled back, which is the reason to defer rather than rely on cancellation. [33]
 
 During a slow call, send `InjectAgentMessage` with `behavior: "queue"` ("One moment while I look that up"). [18] A call to a name you did not define ends the session with `NON_EXISTENT_FUNCTION_CALLED`. [13]
 
@@ -138,7 +150,7 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 - You want a minimal snippet for one feature (`connect`, `custom-llm`, `custom-tts`, `function-calling`): `recipes` skill. [29]
 - You are wiring a third-party platform (Twilio, LiveKit, Pipecat, Vonage, SignalWire, CrewAI, OpenAI Agents SDK): `examples` skill. [21]
 - The agent runs in a browser: `browser-agent` skill, for the four Browser Agent SDK packages on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`). They wrap the same socket this skill documents, including the `Sec-WebSocket-Protocol` token handshake above.
-- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`. The raw protocol above works in any language. [30]
+- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`. The SDKs carry `FunctionCallCancelled` and `defer_until_eot` from JS 5.12.0, Python 7.10.0, and Java 0.10.1, but their voice-agent skills do not describe them, so take the message shapes from this skill. The raw protocol above works in any language. [30]
 - You only need transcription with turn detection, or only synthesis: the SDK `conversational-stt`, `speech-to-text`, or `text-to-speech` skills.
 - You want to find a docs page: `docs` skill. You want the MCP server: `setup-mcp` skill.
 
@@ -175,3 +187,8 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 29. https://github.com/deepgram/recipes/blob/main/COVERAGE.md
 30. https://github.com/deepgram/deepgram-go-sdk (`.agents/skills/deepgram-go-voice-agent`, module `github.com/deepgram/deepgram-go-sdk/v3`, agent client at `pkg/client/agent/v1/websocket`)
 31. https://developers.deepgram.com/docs/voice-agent-latency-report
+32. https://developers.deepgram.com/docs/reusable-agent-configurations (base URL `https://api.deepgram.com/v1`, `config` as a JSON string, immutable `config`, delete warning, `DG_<VARIABLE_NAME>` variables, no secrets)
+33. https://developers.deepgram.com/docs/voice-agent-speculative-replies and https://developers.deepgram.com/docs/voice-agent-function-call-cancelled
+34. https://developers.deepgram.com/docs/voice-agent-tts-controls (`speed` ranges per family, `expressivity` on Flux TTS only)
+35. https://developers.deepgram.com/docs/voice-agent-history
+36. https://developers.deepgram.com/docs/voice-agent-conversational-mode (invite-only Early Access; absent from https://developers.deepgram.com/llms.txt)
