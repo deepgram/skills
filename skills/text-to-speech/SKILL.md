@@ -75,26 +75,54 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
 - Audio starts streaming before you `Flush`. `Flush` ends the turn; the server then sends `Flushed` and
   `SpeechMetadata` with billing and timing. Treat `SpeechMetadata` as the end of the turn; `Flushed` arrives earlier.
 - The server assigns `speech_id` per turn in `SpeechStarted` and `SpeechMetadata`. Never send one.
+- The first message is `Connected`, with `request_id`, `model_name`, `model_version`, and `model_uuids`.
+  The last is `SessionMetadata`, with cumulative session totals; an `Interrupt` rebases its
+  `total_audio_duration_ms` onto the audio the client actually played.
 - On barge-in, stop local playback first, then send
   `{"type":"Interrupt","playback_offset":{"type":"time_ms","value":2340}}`. `SpeechInterrupted` returns
   `text_spoken` and `text_remaining`; feed `text_spoken` back into the LLM context. Without a
-  `playback_offset` the split is omitted.
+  `playback_offset` the split is omitted. `value` is milliseconds played since the session started, not
+  since this turn, and each `Interrupt` must exceed the previous offset or it is ignored with
+  `INVALID_INTERRUPT_OFFSET`. Read `audio_played_ms` from `SpeechInterrupted` as the baseline for the
+  next offset.
 - `{"type":"Configure","speed":1.15}` changes speed mid-session. `speed` runs `0.5` to `1.5` in `0.05`
   increments, default `1.0`. `0.45` and `1.55` return `'speed' must be between 0.5 and 1.5`, and
   `1.07` returns `'speed' must be provided in increments of 0.05`. Errors:
-  `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`.
+  `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`, and
+  `CONTROL_COMBINATION_INVALID`, which means a queued turn still carries a pronunciation control;
+  `Flush` that turn first.
 - `expressivity` runs `-2` (calm) to `2` (animated), default `0`. Values must be whole numbers; a
   fractional value returns `EXPRESSIVITY_INCREMENT_INVALID` and an out-of-range one
   `EXPRESSIVITY_OUT_OF_RANGE`. It is beta, fixed per connection (`Configure` cannot change it), and
   only `0` is validated for production.
+- Pronunciation control (Early Access) is an escaped JSON object in the text, on the socket and on
+  batch: `\{"word":"dupilumab","pronounce":"duːˈpɪljuːmæb"\}`, at most 500 per request, IPA at most
+  128 characters. It works only with `speed` `1.0`: on the socket, a pronunciation sent on a session
+  opened with another speed, or after a `Configure` that set one, fails the connection with
+  `DATA-0002`; on batch the request is a 400 `CONTROL_COMBINATION_INVALID`. Invalid IPA is still
+  applied best-effort and reported as a `PRONUNCIATION_WARNINGS` warning on the socket and in the
+  `dg-warnings` header on batch. Each turn's `SpeechMetadata.controls_applied` counts
+  `pronunciations_applied`, `breaks_applied`, and `pronunciation_warnings`; batch returns
+  `dg-pronunciations-applied` and `dg-breaks-applied` response headers. Syntax and IPA guidance:
+  https://developers.deepgram.com/docs/tts-voice-controls
+- Pause control `\{pause:500ms\}` is batch only: 500 to 3000 ms in 100 ms steps, at most 8 per request,
+  text between adjacent pauses, and `speed` capped at `1.15` while a pause is present
+  (`PAUSE_SPEED_CAP_EXCEEDED`). A pause marker on the socket fails the connection with `DATA-0002`, and
+  a pause combined with a pronunciation is rejected with `CONTROL_COMBINATION_INVALID`. Other batch 400
+  codes: `BREAK_OUT_OF_RANGE`, `BREAK_INCREMENT_INVALID`, `BREAKS_LIMIT_EXCEEDED`, and
+  `BREAK_SYNTAX_INVALID` (a marker without the backslashes).
 - The socket emits raw `linear16` (default), `mulaw`, or `alaw`. Batch-only parameters (`container`,
   `bit_rate`, `callback`, `callback_method`, `priority`) and any unknown parameter fail the connection.
-- Idle sessions close after 60 seconds (`NET-0004`). Send a WebSocket Ping between quiet turns.
+- Idle sessions close after 60 seconds (`NET-0004`); send a WebSocket Ping between quiet turns. Every
+  session closes at 1 hour (`NET-0003`).
 - Batch: `POST https://api.deepgram.com/v2/speak?model=flux-haley-en` with `{"text": "..."}` returns one
-  audio response, `mp3` by default, and accepts `opus`, `flac`, `aac`, `container`, `bit_rate`.
-- SDKs: every Deepgram SDK except Go ships a Flux TTS client. Python, JavaScript, and Java name it
-  `speak.v2`; .NET ships `FluxSpeakRESTClient` and `FluxSpeakWebSocketClient`; Rust ships
-  `speak::flux`. In Go, use the WebSocket directly.
+  audio response, `mp3` by default, accepts `opus`, `flac`, `aac`, `container`, `bit_rate`, and is the
+  only transport that honors inline pauses.
+- SDKs: every Deepgram SDK ships a Flux TTS client. Python, JavaScript, and Java name it `speak.v2`;
+  .NET ships `FluxSpeakRESTClient` and `FluxSpeakWebSocketClient`; Rust ships `speak::flux`; Go ships
+  `pkg/client/speak/v2` from v3.8.0. Only the Rust and .NET SDK skills document Flux TTS; the JS,
+  Python, Java, and Go `text-to-speech` SDK skills cover `/v1/speak` only, so take `/v2/speak` message
+  shapes from this skill.
 
 ## Voices
 
@@ -125,11 +153,14 @@ quote figures from memory.
 5. Asking a WebSocket for `mp3`. Streaming is raw audio on both endpoints. Use REST for compressed output.
 6. Dropping the space between LLM generations on Flux TTS. `Speak` texts are concatenated verbatim, so
    `"Hello world."` then `"How are you?"` becomes `"Hello world.How are you?"`. Insert a space when you
-   stitch a reply, a tool result, and another reply. SSML is stripped with an `INPUT_MARKUP_STRIPPED`
-   warning; send plain text.
+   stitch a reply, a tool result, and another reply. SSML is not supported; the only markup Flux TTS
+   interprets is its own escaped controls, pronunciation on both transports and pause on batch. Aura-2
+   pronunciation control is GA on `/v1/speak` with the same syntax, for English and Spanish voices, with
+   a 2000-character input limit; Aura-2 has no pause control.
 7. Pointing a Voice Agent at api.deepgram.com. The Voice Agent API lives at `wss://agent.deepgram.com`
    and picks the TTS family from `agent.speak.provider.version`: `v2` for Flux TTS, `v1` for Aura.
-   Omitting `agent.speak` gives Flux TTS with `flux-kit-en`.
+   Omitting `agent.speak` gives Flux TTS with `flux-kit-en`. Speed and `expressivity` inside an agent go
+   on `agent.speak.provider`; see https://developers.deepgram.com/docs/voice-agent-tts-controls.
 8. Using Aura `speed` on a German, French, Dutch, Italian, or Japanese voice. Aura-2 speed control
    covers English and Spanish only.
 
@@ -146,7 +177,8 @@ quote figures from memory.
 - You want the docs inside your coding tool: `setup-mcp` skill.
 - You want idiomatic code in one language: the `deepgram-{js,python,java,go,rust,dotnet}-text-to-speech`
   skills from the SDK repositories (`npx skills add deepgram/deepgram-python-sdk`, and so on). Every SDK
-  but Go carries a Flux TTS client; see the SDK note above for what each one calls it.
+  carries a Flux TTS client (Go from v3.8.0); only the Rust and .NET SDK skills document it, so pair the
+  others with this skill for `/v2/speak`.
 - You want Deepgram to run speech-to-text, the LLM, and TTS in one connection: `voice-agent` skill and
   `deepgram-{lang}-voice-agent`.
 - You are transcribing rather than synthesizing: `speech-to-text` skill. Note that "Flux" names both a
@@ -159,4 +191,4 @@ All pages fetched September 2026 as Markdown (append `.md` to any URL); index at
 - Aura: https://developers.deepgram.com/docs/text-to-speech https://developers.deepgram.com/docs/streaming-text-to-speech https://developers.deepgram.com/docs/tts-models https://developers.deepgram.com/docs/tts-voice-controls https://developers.deepgram.com/docs/tts-encoding https://developers.deepgram.com/docs/tts-media-output-settings https://developers.deepgram.com/docs/tts-ws-flush https://developers.deepgram.com/docs/tts-ws-clear
 - Flux TTS: https://developers.deepgram.com/docs/flux-tts/overview https://developers.deepgram.com/docs/flux-tts/quickstart https://developers.deepgram.com/docs/flux-tts/batch https://developers.deepgram.com/docs/flux-tts/batch-vs-streaming https://developers.deepgram.com/docs/flux-tts/voices https://developers.deepgram.com/docs/flux-tts/client-messages https://developers.deepgram.com/docs/flux-tts/server-messages https://developers.deepgram.com/docs/flux-tts/interrupt-handling https://developers.deepgram.com/docs/flux-tts/migrating https://developers.deepgram.com/docs/flux-tts/voice-agent https://developers.deepgram.com/docs/flux-tts/template-apps https://developers.deepgram.com/docs/tts-expressivity
 - API reference: https://developers.deepgram.com/reference/text-to-speech/speak-request https://developers.deepgram.com/reference/text-to-speech/speak-streaming https://developers.deepgram.com/reference/text-to-speech/speak-flux https://developers.deepgram.com/reference/speak/v-2/audio/generate https://developers.deepgram.com/reference/manage/models/list
-- Auth, errors, agent, pricing: https://developers.deepgram.com/reference/authentication https://developers.deepgram.com/reference/auth/tokens/grant https://developers.deepgram.com/docs/errors https://developers.deepgram.com/docs/voice-agent-tts-models https://developers.deepgram.com/reference/voice-agent/voice-agent https://deepgram.com/pricing
+- Auth, errors, agent, pricing: https://developers.deepgram.com/reference/authentication https://developers.deepgram.com/reference/auth/tokens/grant https://developers.deepgram.com/docs/errors https://developers.deepgram.com/docs/voice-agent-tts-models https://developers.deepgram.com/docs/voice-agent-tts-controls https://developers.deepgram.com/reference/voice-agent/voice-agent https://deepgram.com/pricing
