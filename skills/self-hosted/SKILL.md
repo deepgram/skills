@@ -133,7 +133,7 @@ Be honest with anyone planning a timeline. These cannot be self-served and are n
 - **The Flux TTS model `uuid`**: partly gated. The chart's `values.yaml` default and the docs page are empty placeholders, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) and the chart's `samples/08-flux-tts-setup.values.yaml` hardcode a real UUID, so a Compose or sample-values user already has a working value. The template comment still says to obtain it from your account representative — confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
 - **The Flux TTS watermarker model**: `watermarker.<uuid>.dgv2`, provisioned with the Flux TTS model. From `release-261001`, Engine will not start Flux TTS without it, and `[flux_tts] watermarker_uuid` (Helm `fluxTts.watermarkerUuid`) must name it. The Compose templates and the chart's `samples/08-flux-tts-setup.values.yaml` ship `2c4e7068-5d1d-4425-a207-b2f221fabe79`; the chart's `values.yaml` default is empty, and the docs page leaves it for your account representative.
 - **License Proxy entitlement**: via Support.
-- **Air-gapped license file** — a one-line JSON file issued by Deepgram.
+- **Air-gapped license file**: a one-line JSON file issued by Deepgram.
 - **Pricing**: self-hosted is a sales conversation. No figure belongs in a skill; start at [deepgram.com/pricing](https://deepgram.com/pricing) and [contact us](https://deepgram.com/contact-us).
 
 Hardware sizing beyond the published minimums is also a conversation: the docs repeatedly direct you to Support for a customized recommendation.
