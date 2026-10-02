@@ -200,11 +200,11 @@ quote figures from memory.
    then `"How are you?"` becomes `"Hello world.How are you?"`. Insert a space when you stitch a reply, a
    tool result, and another reply.
 
-   SSML is not interpreted; the only markup Flux TTS honors is its own escaped controls, pronunciation
-   on both transports and pause on batch. The client-messages page documents known SSML, ElevenLabs, and
-   Cartesia tags stripped with one `INPUT_MARKUP_STRIPPED` warning per `Speak`; `/v2/speak` returns
-   audio for `<speak>` and `<break>` markup with no `Warning`, so do not wait on that warning, and treat
-   it as informational if it does arrive.
+   Send plain text. SSML is not interpreted; the only markup Flux TTS honors is its own escaped
+   controls, pronunciation on both transports and pause on batch. Recognized SSML, ElevenLabs, and
+   Cartesia tags are stripped, with one `INPUT_MARKUP_STRIPPED` warning per `Speak`; markup outside that
+   detector is forwarded verbatim and may be spoken. See
+   https://developers.deepgram.com/docs/flux-tts/client-messages.
 7. Pointing a Voice Agent at api.deepgram.com. The Voice Agent API lives at `wss://agent.deepgram.com`
    and picks the TTS family from `agent.speak.provider.version`: `v2` for Flux TTS, `v1` for Aura.
    Omitting `agent.speak` gives Flux TTS with `flux-kit-en`.

@@ -49,7 +49,7 @@ Declared runtime dependencies, as published. `@deepgram/agents` depends on `@dee
 
 ## Browser auth: never the API key
 
-A browser `WebSocket` cannot set request headers, so the SDK sends a short-lived bearer token as the `Sec-WebSocket-Protocol` handshake value. You supply that token through `tokenFactory`, which the SDK calls before every connect and every reconnect, so a few seconds of TTL is enough. The token only has to be valid at the handshake: once the socket is open, the token expiring does not close it, and a 30-second token is fine for an hour-long call. `AgentSession` wraps `tokenFactory` in a cache that holds a token for 4 minutes by default and is invalidated before each reconnection attempt. The docs call that cache "safe for Deepgram's 5-minute short-lived keys", but `/v1/auth/grant` returns `expires_in: 30` unless you set `ttl_seconds`; with the default TTL a reused cached token is already expired, so either keep the default and rely on the pre-reconnect invalidation, or mint with `ttl_seconds` of 300 or more. [1][2][3]
+A browser `WebSocket` cannot set request headers, so the SDK sends a short-lived bearer token as the `Sec-WebSocket-Protocol` handshake value. You supply that token through `tokenFactory`, which the SDK calls before every connect and every reconnect, so a few seconds of TTL is enough. The token only has to be valid at the handshake: once the socket is open, the token expiring does not close it, and a 30-second token is fine for an hour-long call. `AgentSession` wraps `tokenFactory` in an expiry-aware cache: it reads the JWT `exp` claim and refreshes 5 seconds before it, falls back to 25 seconds for a token that is not a JWT, and is invalidated before every connection and reconnection attempt, so each handshake gets a fresh token. The default 30-second token from `/v1/auth/grant` works as is; no `ttl_seconds` change is needed. [1][2][3]
 
 Mint them on your own server. `POST https://api.deepgram.com/v1/auth/grant` needs an API key with Member or higher authorization and returns `{"access_token":"...","expires_in":30}`. Its tokens work on the voice APIs but not on the Manage APIs:
 
@@ -188,7 +188,7 @@ await mic.start();
 
 1. https://developers.deepgram.com/docs/browser-agent-overview (layer choice, token factory, `Sec-WebSocket-Protocol`)
 2. https://developers.deepgram.com/reference/auth/tokens/grant and https://developers.deepgram.com/guides/fundamentals/token-based-authentication (`ttl_seconds`, 30-second default, Member-scope requirement)
-3. https://github.com/deepgram/agent (`packages/sdk`), `npm view @deepgram/agents readme`, and https://developers.deepgram.com/docs/browser-agent-javascript (`@deepgram/agents` exports, session options, events, token cache, mic and player options)
+3. https://github.com/deepgram/agent (`packages/sdk`), `npm view @deepgram/agents readme`, `dist/index.js` in the published `@deepgram/agents@0.1.2` tarball (token cache), and https://developers.deepgram.com/docs/browser-agent-javascript (`@deepgram/agents` exports, session options, events, mic and player options)
 4. https://github.com/deepgram/react (`packages/react/src/context.ts` throws the `useAgentContext` error) and https://developers.deepgram.com/docs/browser-agent-react (provider, hooks, barge-in handling, `useDeepgramAgent` limits)
 5. https://github.com/deepgram/ui and https://developers.deepgram.com/docs/browser-agent-react-ui (components, `[data-dg-agent]` tokens, pre-1.0 statement)
 6. `npm view <pkg> version dist-tags dependencies peerDependencies` for all four packages

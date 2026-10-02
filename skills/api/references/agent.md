@@ -251,6 +251,11 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
   - `type` `ForceEndTurn` **(required)** — Message type identifier for forcing the end of the current turn
 
+**AgentV1CustomToThinkProvider** — Experimental. Send an arbitrary JSON payload to a custom think provider. Requires a `wss://` custom Think endpoint in `agent.think.endpoint.url`.
+
+  - `type` `__customToThinkProvider` **(required)** — Message type identifier for sending a custom payload to the think provider
+  - `content` any **(required)** — Any valid JSON value (object, array, string, number, boolean, or null). Deepgram forwards it to the think provider without validation
+
 **AgentV1Media** — Send raw binary audio data to Deepgram's Voice Agent API for processing
 
 #### Server → Client Messages
@@ -347,6 +352,11 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 **AgentV1AgentAudioDone** — Receive agent audio done message from Deepgram's Voice Agent API
 
   - `type` `AgentAudioDone` **(required)** — Message type identifier indicating the agent has finished sending audio
+
+**AgentV1CustomFromThinkProvider** — Experimental. Receive a response body from a custom think provider, passed through unchanged. Requires a `wss://` custom Think endpoint in `agent.think.endpoint.url`.
+
+  - `type` `__customFromThinkProvider` **(required)** — Message type identifier for a custom payload returned by the think provider
+  - `content` any **(required)** — The think provider's response body, passed through unchanged. If the provider's response is not valid JSON, it arrives as a JSON string
 
 **AgentV1Error** — Receive error response from Deepgram's Voice Agent API
 
