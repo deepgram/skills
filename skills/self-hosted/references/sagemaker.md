@@ -39,7 +39,7 @@ Deploy on an ordered **instance pool** rather than a single instance type. A sin
 2. Same-or-newer generations with similar per-instance capacity next (`g6`, then `g6e`, then `g7`). Similar capacity matters if you autoscale, because the predefined scaling metrics are per instance and do not account for a mixed fleet.
 3. Older generations last, as insurance (`g5`, and `g4dn` where supported).
 4. Never a type the product does not support: `g4dn` for Flux STT, `g5` and `g4dn` for Flux TTS, any single-GPU type for Aura-2.
-5. Up to 5 types; three is the sweet spot.
+5. Up to five types; three is the sweet spot.
 
 `VariantInstanceProvisionTimeoutInSeconds` is the per-type wait before SageMaker moves to the next type: `300` is recommended (AWS allows `60` to `3600`), so a three-type pool can sit in `Creating` for about 15 minutes before it fails. Quota does not fall back: SageMaker validates the quota of every type in the pool at `CreateEndpoint`, and a type with a regional quota below `1` fails the call with `ResourceLimitExceeded` regardless of which type would have been used. CLI and Boto3 examples: [Choose instance types](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#choose-instance-types).
 
@@ -170,7 +170,7 @@ Examples: `examples/stt.mjs`, `tts.mjs`, `flux.mjs`, `flux-tts.mjs`, `live-mic.m
 
 ### Java
 
-Requires **Java 11+** and Deepgram Java SDK **v0.4.0+**: the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.10.2`, which satisfies the floor. Pin deliberately and test the pairing.
+Requires **Java 11+** and Deepgram Java SDK **v0.4.0+**: the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.11.0`, which satisfies the floor. Pin deliberately and test the pairing.
 
 ```groovy
 dependencies {

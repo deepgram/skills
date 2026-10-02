@@ -26,7 +26,7 @@ additional endpoint. `/v1/speak` is unchanged and remains supported.
 | Spanish, German, French, Dutch, Italian, or Japanese, streamed with manual flush control | Aura-2 | `wss://api.deepgram.com/v1/speak` |
 | An existing `aura-{voice}-en` voice you must keep | Aura-1 | `/v1/speak` |
 
-Rule of thumb: Flux TTS is the recommended family for all new builds: voice agents, customer service,
+Rule of thumb: Flux TTS is the recommended family for all new English builds: voice agents, customer service,
 IVR, and general-purpose synthesis. Pick Aura-2 when you need a language Flux TTS does not cover;
 Flux TTS voices are English only, and Aura-2 serves Spanish, German, French, Dutch, Italian,
 and Japanese. Aura-1 is the first-generation family, English only. Inside a Voice Agent, compressed
@@ -117,8 +117,7 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
     provided in increments of 0.05`.
   - `ConfigureFailure` codes: `SPEED_OUT_OF_RANGE`, `SPEED_INCREMENT_INVALID`, `SPEED_NOT_SUPPORTED`,
     `CONTROL_COMBINATION_INVALID` (a queued turn still carries a pronunciation control; `Flush` that
-    turn first), and `INTERNAL_ERROR`, which the API reference (`references/speak.md`) lists for an
-    acceptable configuration the server could not apply.
+    turn first), and `INTERNAL_ERROR`, for an acceptable configuration the server could not apply.
 - `expressivity` runs `-2` (calm) to `2` (animated), default `0`. Values must be whole numbers. An
   invalid value is rejected with an HTTP 400 before the WebSocket upgrade completes, so no `Connected`
   message arrives: `EXPRESSIVITY_INCREMENT_INVALID` for a fraction such as `1.5`,

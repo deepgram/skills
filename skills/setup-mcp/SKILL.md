@@ -292,10 +292,9 @@ For Path C, add:
 > parameters, voice agents, or model capabilities.
 
 Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/developer-tools/agentic-tools)
-for more details, with one caveat: its "Docs MCP server" section lists
-`https://api.dx.deepgram.com/kapa/mcp` and `https://deepgram.mcp.kapa.ai` with no authentication
-step although both answer an unauthenticated `initialize` with 401, and its Docs MCP section
-does not mention `/_mcp/server`, although the page header names it.
+for more details. Its two kapa URLs, `https://api.dx.deepgram.com/kapa/mcp` and
+`https://deepgram.mcp.kapa.ai`, require credentials: an unauthenticated `initialize` returns 401.
+The Docs MCP server at `/_mcp/server` is the credential-free path.
 
 ## Troubleshooting
 
@@ -339,4 +338,4 @@ the API serves right now, not what the package version implies. Reconnect to pic
 
 - Deepgram CLI: <https://github.com/deepgram/cli>
 - `deepgram-mcp`: <https://github.com/deepgram/mcp>
-- Deepgram Agentic Tools: <https://developers.deepgram.com/developer-tools/agentic-tools> (lists the kapa URLs without their required credentials; its Docs MCP section omits `/_mcp/server`, which only the page header names)
+- Deepgram Agentic Tools: <https://developers.deepgram.com/developer-tools/agentic-tools>

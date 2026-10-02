@@ -2,7 +2,7 @@
 
 The production path. Deepgram publishes and maintains the `deepgram-self-hosted` Helm chart. Read [hardware.md](hardware.md) first.
 
-Chart version `0.46.0`, `appVersion` `release-260915`, requiring Kubernetes `>=1.28.0-0` and **Helm 3.7+**. Also listed on [Artifact Hub](https://artifacthub.io/packages/search?repo=deepgram-self-hosted).
+Chart version `0.47.0`, `appVersion` `release-261001`, requiring Kubernetes `>=1.28.0-0` and **Helm 3.7+**. Also listed on [Artifact Hub](https://artifacthub.io/packages/search?repo=deepgram-self-hosted).
 
 ## Install
 
@@ -107,11 +107,11 @@ Deepgram recommends **separate environments for batch STT, streaming STT, and TT
 | Product | Values |
 |---|---|
 | Flux STT | Engine `engine.flux.enabled` (default `false`), `engine.flux.max_streams` (unset), `engine.flux.model_name` (default `flux-general-en`), **plus** API `api.features.listenV2: true` (default `false`) |
-| Flux TTS | `fluxTts.enabled`, `fluxTts.uuid`, `fluxTts.maxBatchSize`, plus `api.features.speakV2` and `api.features.speakV2Streaming` |
+| Flux TTS | `fluxTts.enabled`, `fluxTts.uuid`, `fluxTts.watermarkerUuid`, `fluxTts.maxBatchSize`, plus `api.features.speakV2` and `api.features.speakV2Streaming` |
 | Aura-2 | `aura2.enabled`, then `aura2.english` / `aura2.spanish` / `aura2.polyglot` |
 | Voice Agent | `agent.enabled: true` (default `false`) |
 
-Helm users do not edit Engine TOML directly — the chart renders it. `fluxTts.maxBatchSize` defaults to `0` and Engine will not start until you set a real value; there is no safe default, and the right one differs substantially per GPU. Get it from your account representative, then confirm it with the `benchmarking/tts/` k6 scripts.
+Helm users do not edit Engine TOML directly; the chart renders it. From chart `0.47.0` (`release-261001`), `fluxTts.watermarkerUuid` is required with `fluxTts.enabled: true` and the chart fails to render without it; the matching `watermarker.<uuid>.dgv2` file must also be in the models volume, or Engine crash-loops even though the render succeeds. `fluxTts.maxBatchSize` defaults to `0` and Engine will not start until you set a real value; there is no safe default, and the right one differs substantially per GPU. Get it from your account representative, then confirm it with the `benchmarking/tts/` k6 scripts.
 
 **Flux STT is two-sided, and setting only `api.features.listenV2` is a trap.** That flag exposes the `/v2/listen` route; without `engine.flux.enabled` there is no Flux Engine behind it. Set both. Note that `max_streams` and `model_name` are genuinely snake_case, unlike the camelCase used everywhere else in the chart — copy them exactly:
 
@@ -181,7 +181,7 @@ const deepgram = new DeepgramClient({
 
 Enable the **Billing** container, which validates a license locally and journals usage instead of calling `license.deepgram.com`.
 
-- Architecture: `API/Engine → Billing`, or `API/Engine → License Proxy → Billing` for HA. The chained form needs a chart newer than `0.46.0`: on `0.46.0` and earlier, with `billing.enabled` and `licenseProxy.enabled` both `true`, the `billing` condition takes precedence, so API and Engine connect to Billing directly and the deployed License Proxy receives no traffic. The fix is the `Unreleased` entry in `charts/deepgram-self-hosted/CHANGELOG.md`.
+- Architecture: `API/Engine → Billing`, or `API/Engine → License Proxy → Billing` for HA. The chained form needs chart `0.47.0` or later: on `0.46.0` and earlier, with `billing.enabled` and `licenseProxy.enabled` both `true`, the `billing` condition takes precedence, so API and Engine connect to Billing directly and the deployed License Proxy receives no traffic. The fix is in the `0.47.0` entry of `charts/deepgram-self-hosted/CHANGELOG.md`.
 - Obtain from Deepgram: a license key, a license file (`.dg`, a one-line JSON file), and registry access for `quay.io/deepgram/*` including the Billing image.
 - Configure `billing.enabled`, `billing.licenseFile.secretRef` (key `license.dg` by default), and `global.deepgramLicenseSecretRef`.
 - Billing listens on `8443` for license verification and `8080` for the `/v1/certificates` endpoint.

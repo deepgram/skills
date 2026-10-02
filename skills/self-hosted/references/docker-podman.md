@@ -159,13 +159,14 @@ INFO impeller::flux::prewarm: Finished prewarming Flux model
 
 Use `docker/docker-compose.flux-tts.yml` with `common/license_proxy_deploy/` configs (that template runs a License Proxy).
 
-The two `engine.flux-tts.toml` templates already set `enabled = true` and a real model `uuid`; only `max_batch_size` is a placeholder you must replace.
+The two `engine.flux-tts.toml` templates already set `enabled = true`, a real model `uuid`, and the `watermarker_uuid`; only `max_batch_size` is a placeholder you must replace.
 
 ```toml
 # engine.flux-tts.toml, as shipped
 [flux_tts]
 enabled = true
 uuid = "f94b1bd5-5f6d-4e41-bbda-b326273386c0"   # shipped value, not a placeholder
+watermarker_uuid = "2c4e7068-5d1d-4425-a207-b2f221fabe79"   # required from release-261001
 max_batch_size = 0   # placeholder — Engine will NOT start until this is non-zero
 
 # api.flux-tts.toml, as shipped
@@ -176,7 +177,7 @@ speak_v2_streaming = true
 
 Treat the checked-in `uuid` as the value for the release the template was cut against, not as permanent: confirm it against the release you are deploying. The template's own comment says to obtain the UUID from your account representative, and the Helm chart (`fluxTts.uuid`) and the docs page both leave it empty.
 
-- Requires image `release-260812` or later.
+- Requires image `release-261001` or later, and the `watermarker.<uuid>.dgv2` model file beside the Flux TTS model; Engine will not start Flux TTS without it.
 - Needs at least 64 GB system RAM on the host (60 GB startup allocation).
 - Pin the Engine to one GPU with `CUDA_VISIBLE_DEVICES: "0"`. For more GPUs, copy the `engine` service once per GPU with a different index.
 - Flux TTS and Aura cannot share an Engine — Engine refuses to start if both are configured.
@@ -194,7 +195,7 @@ wscat -c "ws://localhost:8080/v2/speak?model=flux-haley-en"
 # {"type": "Flush"}
 ```
 
-On FIPS images (the `-fips` tag suffix), MP3 and FLAC output is a known issue: a request for either returns `HTTP 200` with an empty body, so set `encoding` explicitly on `/v1/speak` and batch `/v2/speak` requests, which default to MP3. Streaming `/v2/speak` returns `linear16` and is unaffected. Flux TTS runs on FIPS images; Flux STT does not, and runs only on standard images. The FIPS Engine loads `.dgv2` models only (`.dgv2` and `.dg` files are not interchangeable), and the FIPS API image accepts TLS 1.3 only, rejecting TLS 1.2 connections and non-FIPS cipher suites whatever the `[fips]` flag says.
+On FIPS images (the `-fips` tag suffix), MP3 and FLAC output is a known issue: a request for either returns `HTTP 200` with an empty body, so set `encoding` explicitly on `/v1/speak` and batch `/v2/speak` requests, which default to MP3; `linear16` and `opus` are unaffected, and so is streaming `/v2/speak`. Flux TTS runs on FIPS images; Flux STT does not, and runs only on standard images. The FIPS Engine loads `.dgv2` models only (`.dgv2` and `.dg` files are not interchangeable), and the FIPS API image accepts TLS 1.3 only, rejecting TLS 1.2 connections and non-FIPS cipher suites whatever the `[fips]` flag says.
 
 ## Sources
 

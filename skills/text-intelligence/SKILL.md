@@ -25,7 +25,7 @@ no streaming — one request, one response. Four features: `summarize`, `sentime
 - **Your input is audio**: do not transcribe and then call this. `/v1/listen` runs the same analysis
   during transcription, in a single API call. Open the `audio-intelligence` skill.
 - **You need entity detection** (names, amounts, dates): only `/v1/listen` detects entities
-  (`/v1/read` rejects `detect_entities`), so your input has to be audio.
+  (`/v1/read` does not offer `detect_entities`), so your input has to be audio.
 - **You need streaming**: there is none. `/v1/read` is POST-only — a GET returns 405, and so does a
   WebSocket upgrade against the same path.
 
@@ -108,7 +108,7 @@ at 10 per feature, 20 for `summarize`. [11]
   callback either with Basic Auth credentials embedded in the URL or by checking the `dg-token`
   header Deepgram adds, which carries the API Key Identifier of the key that made the request. If
   your endpoint answers with a status outside 200 to 299, Deepgram retries up to 10 times with a
-  30 second delay between attempts. [5]
+  30-second delay between attempts. [5]
 - `tag` (repeatable) labels the request for usage reporting. Each tag is at most 128 characters,
   at most 500 unique tags are accepted per day, and a tag cannot be changed once set. Tags on the
   API key are applied to the request too. [6]
@@ -148,11 +148,9 @@ read <https://deepgram.com/pricing> rather than any figure quoted in a skill.
 ## Use a different skill when
 
 - Your input is audio: `audio-intelligence` skill. It also covers entity detection.
-- You want every parameter and the response schema: `api` skill, `references/read.md`, with three
-  caveats: its `language` default is wrong (mistake 1); its `summarize` description reads
-  boolean-only although the type is `v2` | boolean and the live API accepts `v2`; and its example
-  response nests `metadata.metadata` and `results.summary.results.summary.text` where the API
-  returns the flat shape in the table above. [4]
+- You want every parameter and the response schema: `api` skill, `references/read.md`. `language`
+  is required with no default (mistake 1), `summarize` accepts `v2` as well as `true`, and the
+  response is the flat shape in the table above. [4]
 - You want a shell command rather than application code: `cli` skill. `dg read --file document.txt
   --summarize --sentiment --topics --intents` runs the same request. [12]
 - You want a runnable demo app: `starters` skill, feature `text-intelligence`, available for node,

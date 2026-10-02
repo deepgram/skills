@@ -50,7 +50,7 @@ Nova options you will reach for, all query parameters on `/v1/listen`:
 - `language=multi` transcribes code-switched speech across the ten Nova-3 multilingual languages. Any single language code works too; the default is `en`.
 - `keyterm=<term>` boosts names, product terms, and jargon. It is accepted on Nova-3 and Flux STT only; other models, Nova-2 for example, use `keywords` instead. Repeat the parameter once per term. The limit is 500 tokens across all keyterms in a request, and exceeding it fails the request with `Keyterm limit exceeded`; Deepgram's guidance is to stay well under it with the 20 to 50 terms that matter. Commas, semicolons, and `term:weight` are not rejected; the API treats the whole value as one literal term, so nothing you intended gets boosted.
 - `summarize=v2`, `sentiment=true`, `topics=true`, and `intents=true` add audio intelligence. They run on prerecorded English audio only.
-- Live streaming uses `wss://api.deepgram.com/v1/listen?model=nova-3`, the same `Authorization` header, and binary audio frames. Send `{"type":"KeepAlive"}` as a text frame every 3 to 5 seconds during silence, as the keep-alive page says; after 10 seconds without audio or `KeepAlive` the connection closes with `NET-0001` (the Flux STT comparison page says 12 seconds). Finish with `{"type":"CloseStream"}`. Regional hosts take the same path and the same key: `wss://api.eu.deepgram.com/v1/listen`, `wss://api.au.deepgram.com/v1/listen`, `wss://api.in.deepgram.com/v1/listen`.
+- Live streaming uses `wss://api.deepgram.com/v1/listen?model=nova-3`, the same `Authorization` header, and binary audio frames. Send `{"type":"KeepAlive"}` as a text frame every 3 to 5 seconds during silence, as the keep-alive page says; after 10 seconds without audio or `KeepAlive` the connection closes with `NET-0001`. Finish with `{"type":"CloseStream"}`. Regional hosts take the same path and the same key: `wss://api.eu.deepgram.com/v1/listen`, `wss://api.au.deepgram.com/v1/listen`, `wss://api.in.deepgram.com/v1/listen`.
 
 ## Flux STT: conversational audio with turn detection
 
@@ -60,12 +60,12 @@ Connect over WebSocket. Flux has no REST path.
 wss://api.deepgram.com/v2/listen?model=flux-general-en&encoding=linear16&sample_rate=16000
 ```
 
-Send the same `Authorization: Token` header. Audio must be mono. For raw audio (`linear16`, `linear32`, `mulaw`, `alaw`, `opus`, `ogg-opus`) `encoding` and `sample_rate` are required; for WAV, Ogg, or WebM containers omit both. Send 80 ms chunks. Flux STT has no `KeepAlive` message: WebSocket pings replace it, with a 60 second timeout. For in-region processing use `wss://api.eu.deepgram.com/v2/listen`, `wss://api.au.deepgram.com/v2/listen`, or `wss://api.in.deepgram.com/v2/listen` with the same key.
+Send the same `Authorization: Token` header. Audio must be mono. For raw audio (`linear16`, `linear32`, `mulaw`, `alaw`, `opus`, `ogg-opus`) `encoding` and `sample_rate` are required; for WAV, Ogg, or WebM containers omit both. Send 80 ms chunks. Flux STT has no `KeepAlive` message: WebSocket pings replace it, with a 60-second timeout. For in-region processing use `wss://api.eu.deepgram.com/v2/listen`, `wss://api.au.deepgram.com/v2/listen`, or `wss://api.in.deepgram.com/v2/listen` with the same key.
 
 Two query parameters on `/v2/listen` behave differently from Nova:
 
 - `redact` takes `numbers` or `aggressive_numbers`; any other value fails the handshake with 400. Each redacted span becomes a single `*`, not `[REDACTED]` or an entity tag.
-- `profanity_filter` is accepted by the API reference, while the Flux STT comparison page lists it as unsupported. Do not rely on `profanity_filter` on Flux STT until the comparison page and the reference agree.
+- `profanity_filter=true` works on `/v2/listen`, `language=multi` included.
 
 The server sends `Connected`, then a stream of `TurnInfo` messages. Each carries `event`, `turn_index`, `transcript`, `words` with timestamps, and `end_of_turn_confidence`. The `event` values:
 

@@ -79,15 +79,14 @@ original input returned as-is, and no tokens in or out are billed as summarizati
 
 On the live socket, `detect_entities=true` adds a **top-level** `entities` array to `Results`
 messages, next to `channel` and not inside `channel.alternatives[0]`. Read entities only from
-messages whose `is_final` is `true`. The docs say interim results carry no `entities` key; `nova-3`
-sends the key on interim results as well, usually `[]` and sometimes populated, and
-those values are not final. A final result with nothing detected carries `"entities": []`. Same
+messages whose `is_final` is `true`. Interim results can carry the key too, usually `[]` and
+sometimes populated, and those values are not final. A final result with nothing detected carries `"entities": []`. Same
 field shape as above, `raw_value` included when formatting is on. [4]
 
 To return complete entities, the server holds a final result until the speaker moves on to
 non-entity speech, 3 seconds of silence pass, or a `Finalize` message arrives. `no_delay=true`
-forces immediate finalization without that wait, and the docs state it will leave entities missed
-or incomplete in many cases. Send `no_delay=true` only when latency matters more than entity
+forces immediate finalization without that wait, and leaves entities missed or incomplete in
+many cases. Send `no_delay=true` only when latency matters more than entity
 accuracy. [4]
 
 ## Narrowing topics and intents
@@ -121,9 +120,10 @@ matches your list, which looks like a broken request but is not. Start with `ext
    and `"type":"unsupported_language"`, and `results.summary` present with `"result":"failure"`
    and a `short` string that says the feature is English only. Check `summary.result` before you
    use `summary.short`. [3]
-4. **`language=multi` as a workaround.** It is not one. `multi` returns the analysis when the
-   detected speech is English and drops it with the same `metadata.warnings` when it is not, so the
-   same request succeeds or silently degrades depending on what the caller said.
+4. **`language=multi` as a workaround.** It is not one. For `sentiment`, `intents`, and `topics`,
+   `multi` returns the analysis when the detected speech is English and drops it with the same
+   `metadata.warnings` when it is not, so the same request succeeds or silently degrades
+   depending on what the caller said. `summarize` with `language=multi` is a 400.
 5. **`summarize=v1`.** Returns 400 `"To use the summarize feature, please use 'summarize=true' or
    'summarize=v2'. The 'summarize=v1' parameter is deprecated."` Use `v2`; `true` is accepted and
    returns the same `summary.short` shape.
