@@ -47,7 +47,7 @@ Nothing runs without both of these, and they are different things people routine
 
 Steps:
 
-1. **Confirm project access.** Your Console project needs a **Self-Hosted** tab. No tab means the project was never granted self-hosted products, or has managed access but not self-service. Both are resolved by Deepgram — [contact sales](https://deepgram.com/contact-us/) or your account representative. You cannot self-serve past this.
+1. **Confirm project access.** Your Console project needs a **Self-Hosted** tab. No tab means the project was never granted self-hosted products, or has managed access but not self-service. Both are resolved by Deepgram: [contact sales](https://deepgram.com/contact-us) or your account representative. You cannot self-serve past this.
 2. **Create a self-hosted API key** in [Console](https://console.deepgram.com). Expand its details to see which self-hosted products it may license. All self-hosted customers get API and Engine; the License Proxy must be enabled for your project by Deepgram Support.
 3. **Create distribution credentials** in the Console Self-Hosted tab. The secret is displayed **once** — record it immediately. Verify from the CLI:
 
@@ -64,7 +64,7 @@ Steps:
    The `POST` variant takes a `scopes` query parameter, which accepts `self-hosted:products` (the default, meaning all) or per-product scopes: `self-hosted:product:api`, `:engine`, `:license-proxy`, `:dgtools`, `:billing`, `:hotpepper`, `:metrics-server`. Only `api`, `engine`, `license-proxy`, and `billing` map to containers documented publicly; the rest are undocumented, so scope credentials to what you actually deploy. `provider` accepts `quay`.
 
 4. **Log in to Quay** on every deployment host: `docker login quay.io` (or `podman login`).
-5. **Get the model files.** Deepgram delivers encrypted `.dg` model files as download links from your account representative. They are **not** in any public repository and are not on Quay. See [Gated by a human](#gated-by-a-human).
+5. **Get the model files.** Deepgram delivers encrypted `.dg` model files as download links from your account representative (`.dgv2` files for FIPS images; the two formats are not interchangeable). They are **not** in any public repository and are not on Quay. See [Gated by a human](#gated-by-a-human).
 6. **Verify runtime licensing.** Containers hold an outbound HTTPS connection to `license.deepgram.com:443` for licensing and usage reporting. That connection uses mTLS, so probing it with `curl` or an SSL scanner produces spurious errors — that is expected, not a fault. A `401` in container logs means the API key lacks self-hosted permissions; a timeout means your firewall is blocking the egress.
 
 To rotate or revoke credentials, use the four endpoints documented in the `api` skill's `references/self-hosted.md`.
@@ -74,11 +74,11 @@ To rotate or revoke credentials, use the four endpoints documented in the `api` 
 | Component | Image | Role | Required |
 |---|---|---|---|
 | API | `quay.io/deepgram/self-hosted-api` | Accepts requests, serves `/v1/listen`, `/v1/speak`, `/v2/listen`, `/v2/speak`, `/v1/agent/converse`; delegates inference | Yes |
-| Engine | `quay.io/deepgram/self-hosted-engine` | Runs inference on the GPU; loads `.dg` models | Yes |
+| Engine | `quay.io/deepgram/self-hosted-engine` | Runs inference on the GPU; loads `.dg` models (`.dgv2` on the `-fips` image) | Yes |
 | License Proxy | `quay.io/deepgram/self-hosted-license-proxy` | Caches licensing so a license-server outage does not stop inference; can be the only container with egress | Recommended in production; access granted by Deepgram |
 | Billing | `quay.io/deepgram/self-hosted-billing` | Validates a license file locally and journals usage — **air-gapped deployments only** | Air gap only |
 
-Images are tagged by release date, for example `release-260915` — the tag carried across the Docker, Podman, and Helm templates and the Helm chart's `appVersion`. Check the templates for the current one. Pin an explicit tag; never rely on a floating one.
+Images are tagged by release date, for example `release-261001`, the tag carried across the Docker, Podman, and Helm templates and the Helm chart's `appVersion`. Check the templates for the current one. Pin an explicit tag; never rely on a floating one.
 
 Minimum viable deployment: **one API container plus one Engine container on one GPU host**, with `api.toml`, `engine.toml`, and at least one `.dg` model. The License Proxy and Billing containers are additive.
 
@@ -97,6 +97,8 @@ Deepgram does not terminate TLS for you. Put your own proxy (NGINX, HAProxy, Apa
 
 Official templates for the first two live in [`deepgram/self-hosted-resources`](https://github.com/deepgram/self-hosted-resources) (public): `docker/`, `podman/`, `charts/deepgram-self-hosted/`, `common/` (TOML configs), plus `benchmarking/` (k6 load scripts), `monitoring/` (Grafana dashboards, Prometheus alert rules), and `diagnostics/` (log parser, NVIDIA setup validator).
 
+FIPS images (the `-fips` tag suffix) change three things that decide the design before you pick a target. Flux STT is not supported on FIPS images and runs only on standard images. The FIPS Engine loads `.dgv2` models only; `.dgv2` and `.dg` files are not interchangeable, so request the FIPS model files specifically. The FIPS API image enforces TLS 1.3 exclusively: it rejects TLS 1.2 connections and non-FIPS cipher suites such as ChaCha20, the `[fips]` configuration flag does not control this, and any TLS 1.2-only client, SDK, or proxy in front of the API fails to connect. On FIPS images the API serves HTTPS itself with a full-chain PKI certificate you provide. Full contract at [FIPS-Compliant Deployment](https://developers.deepgram.com/docs/fips-compliant-deployment).
+
 ## Feature parity is opt-in, not automatic
 
 Self-hosted is not a mirror of the hosted API. Newer models exist self-hosted but are **off by default**, need a minimum image release, need a model file you request by hand, and — critically — need their own dedicated Engine.
@@ -107,7 +109,7 @@ Self-hosted is not a mirror of the hosted API. Newer models exist self-hosted bu
 | Aura-1 TTS (`/v1/speak`) | Yes | Default — model files only | — | Dedicated TTS node recommended |
 | Aura-2 TTS (`/v1/speak`) | Yes | `aura2.enabled` plus a language block (Helm) | — | Two GPUs per Engine; dedicated TTS node |
 | Flux STT (`/v2/listen`) | Yes | Engine `[flux] enabled`; API `[features] listen_v2` | `release-251015` | **Dedicated Engine.** Cannot share with any other model |
-| Flux TTS (`/v2/speak`) | Yes | Engine `[flux_tts] enabled`; API `[features] speak_v2`, `speak_v2_streaming` | `release-260812` | **Dedicated Engine.** Engine refuses to start if Aura is also configured |
+| Flux TTS (`/v2/speak`) | Yes | Engine `[flux_tts] enabled`, `uuid`, `watermarker_uuid`; API `[features] speak_v2`, `speak_v2_streaming` | `release-261001` | **Dedicated Engine.** Engine refuses to start if Aura is also configured |
 | Voice Agent (`/v1/agent/converse`) | Yes | `agent.enabled` (Helm) | — | Needs STT and TTS Engines running alongside the API |
 
 Consequences worth stating out loud before an evaluation:
@@ -124,14 +126,15 @@ Audio intelligence features (entity detection, redaction, NER formatting) depend
 
 Be honest with anyone planning a timeline. These cannot be self-served and are not in public documentation:
 
-- **Project access to self-hosted products** — Enterprise agreement, via sales.
-- **Every `.dg` model file** — links from your account representative. This is the hard blocker: you can pull images and write configs without one, and still serve nothing.
-- **`[flux] max_streams`** — the concurrency limit per GPU. There is no published per-GPU table; the doc says to ask your account representative. Leaving it auto-calculated causes agents to hang, dropped calls, and `audio_window_end increased by more than 3 frames` in API logs.
-- **`[flux_tts] max_batch_size`** — no safe default exists; Engine refuses to start while it is `0`, which is what the shipped templates set. The right value differs substantially per GPU and comes from your account representative.
-- **The Flux TTS model `uuid`** — partly gated. The Helm chart and the docs page both use an empty placeholder, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) hardcode a real UUID, so a Compose user who downloads the template already has a working value. The template comment still says to obtain it from your account representative — confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
-- **License Proxy entitlement** — via Support.
-- **Air-gapped license file** — a one-line JSON file issued by Deepgram.
-- **Pricing** — self-hosted is a sales conversation. No figure belongs in a skill; start at [deepgram.com/pricing](https://deepgram.com/pricing) and [contact us](https://deepgram.com/contact-us/).
+- **Project access to self-hosted products**: Enterprise agreement, via sales.
+- **Every `.dg` model file**: links from your account representative. This is the hard blocker: you can pull images and write configs without one, and still serve nothing.
+- **`[flux] max_streams`**: the concurrency limit per GPU. There is no published per-GPU table; the doc says to ask your account representative. Leaving it auto-calculated causes agents to hang, dropped calls, and `audio_window_end increased by more than 3 frames` in API logs.
+- **`[flux_tts] max_batch_size`**: no safe default exists; Engine refuses to start while it is `0`, which is what the shipped templates set. The right value differs substantially per GPU and comes from your account representative.
+- **The Flux TTS model `uuid`**: partly gated. The chart's `values.yaml` default and the docs page are empty placeholders, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) and the chart's `samples/08-flux-tts-setup.values.yaml` hardcode a real UUID, so a Compose or sample-values user already has a working value. The template comment still says to obtain it from your account representative, so confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
+- **The Flux TTS watermarker model**: `watermarker.<uuid>.dgv2`, provisioned with the Flux TTS model. From `release-261001`, Engine will not start Flux TTS without it, and `[flux_tts] watermarker_uuid` (Helm `fluxTts.watermarkerUuid`) must name it. The Compose templates and the chart's `samples/08-flux-tts-setup.values.yaml` ship `2c4e7068-5d1d-4425-a207-b2f221fabe79`; the chart's `values.yaml` default is empty, and the docs page leaves it for your account representative.
+- **License Proxy entitlement**: via Support.
+- **Air-gapped license file**: a one-line JSON file issued by Deepgram.
+- **Pricing**: self-hosted is a sales conversation. No figure belongs in a skill; start at [deepgram.com/pricing](https://deepgram.com/pricing) and [contact us](https://deepgram.com/contact-us).
 
 Hardware sizing beyond the published minimums is also a conversation: the docs repeatedly direct you to Support for a customized recommendation.
 
@@ -149,7 +152,7 @@ Hardware sizing beyond the published minimums is also a conversation: the docs r
 10. **Tearing down the only License Proxy during an upgrade.** A new instance must reach `license.deepgram.com` to start. If it cannot and the old one is already gone, every container in the environment fails to license and shuts down. Use blue-green.
 11. **Treating the mTLS license connection as broken** because `curl` or an SSL scanner errors against `license.deepgram.com`. That is correct behavior.
 12. **Deleting the billing journal volume in an air-gapped deployment.** It holds usage data you are contractually required to return. Losing it can suspend service.
-13. **Upgrading API before Engine on a TTS deployment.** `release-260115` changed API-to-Engine communication and is not backwards compatible for TTS traffic. The new Engine (`3.107.0-1`) is compatible with previous API versions, so it must be running before the updated API (`1.176.0`) serves requests — Engine first, then API. STT-only deployments are unaffected. Read the [January 15, 2026 changelog](https://developers.deepgram.com/changelog/2026/1/15) before any TTS upgrade; each self-hosted release has its own entry with its own ordering and minimum-driver requirements.
+13. **Upgrading API before Engine on a TTS deployment.** `release-260115` changed API-to-Engine communication and is not backwards compatible for TTS traffic. The new Engine (`3.107.0-1`) is compatible with previous API versions, so it must be running before the updated API (`1.176.0`) serves requests: Engine first, then API. STT-only deployments are unaffected. Read the [January 15, 2026 changelog](https://developers.deepgram.com/changelog/2026/1/15) before any TTS upgrade; each self-hosted release carries its own ordering and minimum-driver requirements. Read the [chart CHANGELOG](https://github.com/deepgram/self-hosted-resources/blob/main/charts/deepgram-self-hosted/CHANGELOG.md) too. Chart `0.46.0` (`release-260915`) raised `gpu-operator.driver.version` from `550.54.15` to `580.173.02` and set `gpu-operator.driver.useOpenKernelModules` to `true`; when the GPU Operator manages your drivers, that upgrade reinstalls the driver on every GPU node and restarts the GPU workloads on it. Chart `0.47.0` (`release-261001`) watermarks Flux TTS audio: with `fluxTts.enabled: true` the chart fails to render until `fluxTts.watermarkerUuid` is set, `helm upgrade --reuse-values` included, and Engine will not start Flux TTS unless `watermarker.<uuid>.dgv2` sits in the models volume beside the Flux TTS model. Get that file from your account representative before upgrading.
 
 ## Use a different skill when
 
@@ -180,4 +183,6 @@ Append `.md` to any `developers.deepgram.com` page for clean Markdown. [llms.txt
 - Metrics: https://developers.deepgram.com/docs/metrics-guide
 - Regional, Dedicated, and self-hosted endpoints: https://developers.deepgram.com/reference/custom-endpoints and https://developers.deepgram.com/reference/regional-endpoints
 - Using SDKs with self-hosted: https://developers.deepgram.com/docs/using-sdks-with-self-hosted
+- FIPS-compliant deployment: https://developers.deepgram.com/docs/fips-compliant-deployment
 - Official templates: https://github.com/deepgram/self-hosted-resources
+- Helm chart release notes: https://github.com/deepgram/self-hosted-resources/blob/main/charts/deepgram-self-hosted/CHANGELOG.md

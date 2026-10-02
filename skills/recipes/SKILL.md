@@ -43,9 +43,9 @@ recipes/{language}/{product}/{version}/{recipe}/
 
 | Product | Recipe examples |
 |---|---|
-| Speech-to-Text — Nova (`/v1/listen`) | transcribe-url, transcribe-file, paragraphs, diarize, smart-format, utterances, summarize, sentiment, topics, intents, detect-entities, detect-language, redact, search, keywords, streaming |
-| Speech-to-Text — Flux STT (`/v2/listen`) | streaming conversational transcription, EOT / eager-EOT, mid-session `Configure`, keyterms |
-| Text-to-Speech — Aura (`/v1/speak`) | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding, bit-rate |
+| Speech-to-Text: Nova (`/v1/listen`) | 26 recipes: transcribe-url, transcribe-file, streaming, streaming-file, punctuate, smart-format, paragraphs, utterances, diarize, multichannel, numerals, measurements, dictation, filler-words, profanity-filter, redact, replace, search, keywords, keyterm, detect-language, detect-entities, summarize, sentiment, topics, intents |
+| Speech-to-Text: Flux STT (`/v2/listen`) | Two recipes. `streaming` opens the `/v2/listen` WebSocket with `model=flux-general-en`, `encoding=linear16`, `sample_rate=16000` and prints `TurnInfo` events (transcript, turn index, event type) in place of v1 interim/final pairs. `transcribe-url` sets `model=flux-general-en` on the SDK's prerecorded transcribe-URL call with `smart_format`. The CLI has only `transcribe-url`. No recipe is dedicated to EOT or eager EOT thresholds, mid-session `Configure`, or keyterms |
+| Text-to-Speech: Aura (`/v1/speak`) | generate-audio, stream-audio, websocket-streaming, select-model, select-encoding, bit-rate |
 | Audio Intelligence (`/v1/listen`) | summarize, sentiment, topics, intents, entities |
 | Voice Agents | connect, custom-llm, custom-tts, function-calling |
 | Text Analysis (`/v1/read`) | summarize, sentiment, topics, intents |

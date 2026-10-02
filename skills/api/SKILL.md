@@ -25,11 +25,11 @@ All API requests require authentication via API key or JWT:
 Base servers:
 
 - REST & STT/TTS WebSocket: `https://api.deepgram.com`
-- Voice Agent WebSocket **and Voice Agent REST**: `https://agent.deepgram.com`
+- Voice Agent WebSocket **and `GET /v1/agent/settings/think/models`**: `https://agent.deepgram.com`
 
-Voice Agent's REST endpoints live on the `agent.` host too, not on `api.`:
-`GET /v1/agent/settings/think/models` returns 404 on `api.deepgram.com` and 200 on
-`agent.deepgram.com`. Everything else REST stays on `api.deepgram.com`.
+`GET /v1/agent/settings/think/models` lives on the `agent.` host too, not on `api.`: it
+returns 404 on `api.deepgram.com` and 200 on `agent.deepgram.com`. Everything else REST
+stays on `api.deepgram.com`.
 
 ### Regional endpoints
 
@@ -54,14 +54,13 @@ unavailable they fail rather than fall back.
 | `POST /v1/read` | Yes |
 | `wss://…/v1/agent/converse` | Yes |
 | `GET /v1/models` | Yes |
-| `POST /v1/auth/grant`, `GET /v1/auth/token` | Yes |
+| `POST /v1/auth/grant` | Yes |
 | `/v1/projects/*` (keys, members, usage, billing) | **No — 404** |
 
 Two host rules that catch people out:
 
 1. **Voice Agent moves onto the `api.` host regionally.** There is no `agent.eu.deepgram.com`
-   (the name does not resolve). Use `wss://api.eu.deepgram.com/v1/agent/converse`. The Agent
-   REST endpoints move with it. Globally it stays on `agent.deepgram.com`.
+   (the name does not resolve). Use `wss://api.eu.deepgram.com/v1/agent/converse`. `GET /v1/agent/settings/think/models` moves with it. Globally it stays on `agent.deepgram.com`.
 2. **Keep management calls on `api.deepgram.com`.** Point a client's management calls at a
    regional host and `/v1/projects` returns 404, so split the base URL by call type if your
    app both transcribes and manages keys.
@@ -143,7 +142,7 @@ Both model families are actively maintained and industry-leading. They solve dif
 | Turn detection | Manual (`utterance_end_ms`, VAD events) | Built-in (EOT, eager-EOT, turn_index) |
 | Transports | REST + WebSocket | WebSocket only |
 | Intelligence overlays | Yes — `summarize`, `sentiment`, `topics`, `intents`, `diarize_model`, `redact`, etc. | No — smaller focused param set; no `smart_format` / `diarize_model` / `punctuate` |
-| Mid-session reconfig | No (reconnect to change) | Yes (`Configure` message updates EOT thresholds + keyterms live) |
+| Mid-session reconfig | No (reconnect to change) | Yes (`Configure` message updates EOT thresholds, keyterms, language hints, and `numerals` live) |
 
 **Pick Nova (`/v1/listen`, `model=nova-3`) when:**
 - Generating captions, subtitles, or transcripts for recorded media
@@ -155,7 +154,7 @@ Both model families are actively maintained and industry-leading. They solve dif
 - Building an interactive voice agent or assistant
 - You want end-of-turn detection handled for you
 - You need low-latency turn signals and barge-in support
-- You want to update EOT thresholds or keyterms mid-session without reconnecting
+- You want to update EOT thresholds, keyterms, language hints, or `numerals` mid-session without reconnecting
 
 Migrating from Nova 3 to Flux STT? See the official [Nova 3 → Flux migration guide](https://developers.deepgram.com/docs/flux/nova-3-migration).
 
@@ -177,14 +176,14 @@ Both TTS families are actively maintained. `/v2/speak` is a **new endpoint, not 
 | Batch encodings | `mp3`, `opus`, `flac`, `aac`, `linear16`, `mulaw`, `alaw` + `container` / `bit_rate` | Same — but batch-only; the socket rejects them |
 | Interruption | `Clear` discards the buffer, no feedback | `Interrupt` → `SpeechInterrupted` with `text_spoken` / `text_remaining` |
 | Mid-stream reconfig | No (fixed at connection) | Yes — `Configure` updates `speed` only |
-| `speed` | `0.7`–`1.5` — Aura-2, English and Spanish only | `0.5`–`1.5` in `0.05` steps |
+| `speed` | `0.7` to `1.5`, Aura-2, English and Spanish only | `0.5` to `1.5` in `0.05` steps; capped at `1.15` when the text carries a pause marker (`PAUSE_SPEED_CAP_EXCEEDED` above that); see Inline controls for the pronunciation rule |
 | `expressivity` | Not supported | `-2`…`2`, default `0` (beta; fixed for the connection) |
+| Inline controls | Pronunciation `\{"word":"...","pronounce":"<IPA>"\}` (GA on Aura-2, English and Spanish, input up to 2000 characters, combinable with `speed`); no pause control | Pronunciation (Early Access, both transports) only with `speed` exactly `1.0`: `CONTROL_COMBINATION_INVALID` on batch, `DATA-0002` on the socket; pause `\{pause:500ms\}` on batch only, 500 to 3000 ms in 100 ms steps, at most 8 per request |
 | Voice Agent `provider.version` | `v1` (the default when a provider is specified) | `v2` (required) |
 
 **Pick Aura (`/v1/speak`) when:**
 - You need a language other than English, or a specific Aura voice
-- You want compressed or containerized output (`mp3`, `opus`, `flac`, `aac`) from a stream
-- You're doing one-shot synthesis and don't need a turn lifecycle
+- You need compressed output (`mp3`, `opus`, `flac`, `aac`) inside a Voice Agent, where Flux TTS returns `INVALID_SETTINGS`; on batch REST both families serve those encodings
 - You're already on Aura and nothing in Flux TTS is pulling you over — v1 is unchanged
 
 **Pick Flux TTS (`/v2/speak`) when:**
@@ -204,9 +203,9 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 | Listen v2 — STT, Flux STT (conversational) | — | `wss://api.deepgram.com/v2/listen` | [listen.md](references/listen.md) |
 | Speak v1 — TTS, Aura models | `POST /v1/speak` | `wss://api.deepgram.com/v1/speak` | [speak.md](references/speak.md) |
 | Speak v2 — TTS, Flux TTS (turn-based) | `POST /v2/speak` | `wss://api.deepgram.com/v2/speak` | [speak.md](references/speak.md) |
-| Voice Agent | `GET agent.deepgram.com/v1/agent/settings/think/models` | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
+| Voice Agent | `GET agent.deepgram.com/v1/agent/settings/think/models`; reusable agent configurations at `/v1/projects/{project_id}/agents` (`GET`, `POST`) and `/v1/projects/{project_id}/agents/{agent_id}` (`GET`, `PUT`, `DELETE`); agent variables at `/v1/projects/{project_id}/agent-variables` (`GET`, `POST`) and `/v1/projects/{project_id}/agent-variables/{variable_id}` (`GET`, `PATCH`, `DELETE`) | `wss://agent.deepgram.com/v1/agent/converse` | [agent.md](references/agent.md) |
 | Read (Intelligence) | `POST /v1/read` | — | [read.md](references/read.md) |
-| Models | `GET /v1/models` | — | [models.md](references/models.md) |
+| Models | `GET /v1/models`, `GET /v1/models/{model_id}`, `GET /v1/projects/{project_id}/models`, `GET /v1/projects/{project_id}/models/{model_id}`; `include_outdated=true` on either list call also returns non-latest model versions | none | [models.md](references/models.md) |
 | Projects | `/v1/projects/*` | — | [projects.md](references/projects.md) |
 | Auth | `POST /v1/auth/grant` | — | [auth.md](references/auth.md) |
 | Self-Hosted | `/v1/projects/*/self-hosted/*` | — | [self-hosted.md](references/self-hosted.md) |
@@ -215,9 +214,9 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 ### All APIs
 
-1. **Feature flags are query params — except for Voice Agent and the v2 mid-session updates.** For `/v1/listen`, `/v2/listen`, `/v1/speak`, and `/v2/speak`, initial options go on the URL. The request body carries only audio data (REST) or audio frames (WebSocket). Exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); `/v2/listen` supports a `Configure` message after connection to update EOT thresholds and keyterms mid-session; and `/v2/speak` supports a `Configure` message that updates `speed` only. Also note that `/v2/listen` has a much smaller param set than `/v1/listen` — flags like `smart_format`, `diarize_model`, and `punctuate` are not available.
+1. **Feature flags are query params, except for Voice Agent and the v2 mid-session updates.** For `/v1/listen`, `/v2/listen`, `/v1/speak`, and `/v2/speak`, initial options go on the URL. For Listen, the request body carries audio (REST) or audio frames (WebSocket); for Speak, it carries text (REST JSON `text` field or WebSocket `Speak` messages). Exceptions: `/v1/agent/converse` has no URL query params at all (all config goes in the `Settings` message); `/v2/listen` supports a `Configure` message after connection to update EOT thresholds, keyterms, language hints, and `numerals` mid-session; and `/v2/speak` supports a `Configure` message that updates `speed` only. Also note that `/v2/listen` has a much smaller param set than `/v1/listen`: flags like `smart_format`, `diarize_model`, and `punctuate` are not available.
 
-2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further.
+2. **Rate limits are concurrent connections, not total requests.** A 429 means too many simultaneous open connections, not too high a request volume. Diarization and other compute-heavy features reduce your concurrency allowance further. Limits apply per project, not per API key, and differ by region; the [API Rate Limits](https://developers.deepgram.com/reference/api-rate-limits) page carries the per-region concurrency tables.
 
 ### STT WebSocket (`/v1/listen`)
 
@@ -243,7 +242,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 11. **Streaming is raw audio only, and rejects anything it doesn't recognize.** The WebSocket emits non-containerized audio, so `encoding` is limited to `linear16` (default), `mulaw`, or `alaw`. The compressed and containerized encodings (`mp3`, `opus`, `flac`, `aac`) and the `container`, `bit_rate`, `callback`, `callback_method`, and `priority` params are **batch-only** — sending them to the socket fails the connection, as does any unknown or misspelled param. Use the batch REST transport when you need compressed output.
 
-12. **Insert whitespace between separate generations — the server won't.** Text normalization runs before synthesis, but successive `Speak` messages are concatenated verbatim. Sending `"Hello world."` then `"How are you?"` is processed as `"Hello world.How are you?"`, which causes sentence-boundary artifacts. Add a single space (or the right separator for non-whitespace languages) when you stitch a reply, a tool-call result, and another reply together. Send plain text: SSML and other markup is stripped, with an `INPUT_MARKUP_STRIPPED` warning.
+12. **Insert whitespace between separate generations, because the server won't.** Text normalization runs before synthesis, but successive `Speak` messages are concatenated verbatim. Sending `"Hello world."` then `"How are you?"` is processed as `"Hello world.How are you?"`, which causes sentence-boundary artifacts. Add a single space (or the right separator for non-whitespace languages) when you stitch a reply, a tool-call result, and another reply together. Send plain text: SSML is not interpreted, and the only markup Flux TTS honors is its own escaped inline controls. A pronunciation override `\{"word":"...","pronounce":"<IPA>"\}` is honored on both transports (Early Access) but only with `speed` 1.0, and a pause marker `\{pause:500ms\}` is batch-only. A pause marker on the socket, or a pronunciation control on a socket whose `speed` is not 1.0, fails the connection with `DATA-0002`. On batch `POST /v2/speak` the same violations are a 400 whose `err_code` names the rule: `CONTROL_COMBINATION_INVALID` (pronunciation with a pause, or with a `speed` other than `1.0`), `PAUSE_SPEED_CAP_EXCEEDED` (a pause marker with `speed` above `1.15`), `BREAK_OUT_OF_RANGE` (a pause outside 500 to 3000 ms), `BREAK_INCREMENT_INVALID` (a pause off the 100 ms grid), `BREAKS_LIMIT_EXCEEDED` (more than 8 pause markers, or two with no text between them), and `BREAK_SYNTAX_INVALID` (a malformed marker, such as a simple marker without backslashes or an escaped structured marker). A `speed` of exactly `1.0` never counts as a speed control, so it triggers none of these. See [Speed, Pause, Pronunciation](https://developers.deepgram.com/docs/tts-voice-controls).
 
 ### Voice Agent (`/v1/agent/converse`)
 
@@ -254,19 +253,19 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
     { "agent": { "speak": { "provider": { "type": "deepgram", "version": "v2", "model": "flux-alexis-en" } } } }
     ```
 
-15. **The Voice Agent REST endpoints live on `agent.deepgram.com`, not `api.deepgram.com`.** `GET /v1/agent/settings/think/models` — the list of LLMs you can name in `agent.think.provider` — returns **404 on `api.deepgram.com`** and 200 on `agent.deepgram.com`. Same key, same path; only the host differs, so a client with one hardcoded base URL silently gets a 404 that looks like a missing feature. The three regional `api.*` hosts serve it as well.
+15. **`GET /v1/agent/settings/think/models` lives on `agent.deepgram.com`, not `api.deepgram.com`.** `GET /v1/agent/settings/think/models`, the list of LLMs you can name in `agent.think.provider`, returns **404 on `api.deepgram.com`** and 200 on `agent.deepgram.com`. Same key, same path; only the host differs, so a client with one hardcoded base URL silently gets a 404 that looks like a missing feature. The three regional `api.*` hosts serve it as well.
 
 ### Flux STT model (`/v2/listen`)
 
 16. **Use `/v2/listen` and a `flux-general-*` model.** Two are served: `flux-general-en` (English) and `flux-general-multi` (multilingual, and the only model that accepts `language_hint` / `language_hints`). `/v1/listen` does not support Flux STT, and `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
 
-17. **Use `Configure` to update EOT thresholds and keyterms mid-session.** Unlike `/v1/listen`, Flux STT supports live reconfiguration after connection — no need to reconnect to change turn detection sensitivity or boost new keyterms:
+17. **Use `Configure` to update EOT thresholds, keyterms, language hints, and `numerals` mid-session.** Unlike `/v1/listen`, Flux STT supports live reconfiguration after connection, so there is no need to reconnect to change turn detection sensitivity, boost new keyterms, re-bias language detection (`language_hints`, `flux-general-multi` only), or switch `numerals` on for a PIN or order number:
     ```json
-    { "type": "Configure", "thresholds": { "eot_threshold": "0.8", "eot_timeout_ms": "3000" }, "keyterms": ["Deepgram"] }
+    { "type": "Configure", "thresholds": { "eot_threshold": 0.8, "eot_timeout_ms": 3000 }, "keyterms": ["Deepgram"] }
     ```
-    The server responds with `ConfigureSuccess` (echoing back applied values) or `ConfigureFailure`. Omitted threshold fields keep their current values.
+    The server responds with `ConfigureSuccess`, which echoes the full active configuration, `numerals` included, not only the fields you sent, or `ConfigureFailure`, which carries `code` and `description` identifying the rejected configuration. Omitted threshold fields keep their current values.
 
-18. **`ForceEndTurn` outside a turn is a `Warning`, not an error — and the socket stays open.** Sending `{"type":"ForceEndTurn"}` while no turn is in progress returns `{"type":"Warning","code":"FORCE_END_TURN_NO_ACTIVE_TURN","description":"Received ForceEndTurn while no turn was active; the request was ignored."}` and the connection continues. Do not treat it as fatal or reconnect. Neither the `Warning` message nor this code is in the AsyncAPI spec yet, so `references/listen.md` cannot show them. When `ForceEndTurn` *does* land mid-turn, the resulting `TurnInfo` carries `event: "EndOfTurn"` with `trigger: "manual"` — `trigger` is `model` | `manual` | `timeout`, it appears on `EndOfTurn` and nowhere else, and it is an open enum, so tolerate values you do not recognize.
+18. **`ForceEndTurn` outside a turn is a `Warning`, not an error, and the socket stays open.** Sending `{"type":"ForceEndTurn"}` while no turn is in progress returns `{"type":"Warning","code":"FORCE_END_TURN_NO_ACTIVE_TURN","description":"Received ForceEndTurn while no turn was active; the request was ignored."}` and the connection continues. Do not treat it as fatal or reconnect. `references/listen.md` shows the message shape (`ListenV2Warning`: `code`, `description`, `request_id`, `sequence_id`); `code` is a free string there, so the individual codes such as `FORCE_END_TURN_NO_ACTIVE_TURN` come from the [Force End Turn](https://developers.deepgram.com/docs/flux/force-end-turn) docs. When `ForceEndTurn` *does* land mid-turn, the resulting `TurnInfo` carries `event: "EndOfTurn"` with `trigger: "manual"`. `trigger` is `model` | `manual` | `timeout`, it appears on `EndOfTurn` and nowhere else, and it is an open enum, so tolerate values you do not recognize.
 
 ### Nova diarization (`/v1/listen`)
 
@@ -274,7 +273,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 ### Text and Audio Intelligence (`/v1/read`, `/v1/listen`)
 
-20. **`language` is required on `/v1/read`, and it is validated before anything else.** There is no default, despite what `references/read.md` says: omitting it returns `400 INVALID_QUERY_PARAMETER` — "Failed to deserialize query parameters: missing field `language`" — which masks every other problem in the request. English only — `language=multi` is rejected, and `en-US` is accepted but echoed back as `en`. Two more `/v1/read` shapes worth knowing: the JSON body takes **exactly one** of `text` or `url` (both or neither gives `PAYLOAD_ERROR`, and `url` must point at a plain-text document — audio gives `REMOTE_CONTENT_ERROR`), and it is POST-only (`GET` and a WebSocket upgrade both return 405). `summarize` on `/v1/read` accepts `v2` as well as `true`, contrary to the reference. Result paths differ per endpoint: `/v1/read` returns `results.summary.text`, `/v1/listen` returns `results.summary.short`, so code that handles both has to branch. (`sentiment` maps to `results.sentiments` on both.)
+20. **`language` is required on `/v1/read`, and it is validated before anything else.** There is no default: omitting it returns `400 INVALID_QUERY_PARAMETER` with the message "Failed to deserialize query parameters: missing field `language`", which masks every other problem in the request. English only: `language=multi` is rejected, and `en-US` is accepted but echoed back as `en`. Two more `/v1/read` shapes worth knowing: the JSON body takes **exactly one** of `text` or `url` (both or neither gives `PAYLOAD_ERROR`, and `url` must point at a plain-text document, since audio gives `REMOTE_CONTENT_ERROR`), and it is POST-only (`GET` and a WebSocket upgrade both return 405). `summarize` on `/v1/read` accepts `v2` as well as `true`. Result paths differ per endpoint: `/v1/read` returns `results.summary.text`, `/v1/listen` returns `results.summary.short`, so code that handles both has to branch. (`sentiment` maps to `results.sentiments` on both.)
 
 21. **On the Nova streaming socket, only `detect_entities` works — and the other four fail in three different ways.** `detect_entities=true` is supported and puts `entities` at the **top level** of each `Results` message, beside `channel`, not inside `channel.alternatives[0]`. The other four are prerecorded-only: `summarize` fails the handshake with `400 "Summarization is not available for streaming."`; `topics` and `intents` fail it with `403 UNAUTHORIZED_FEATURES_REQUESTED`, which reads like a key-permissions problem even when the same key's prerecorded `topics`/`intents` calls return 200; and `sentiment` is the trap — the handshake succeeds, no error is ever sent, and sentiment simply never appears in the results.
 
@@ -329,3 +328,5 @@ Swift and Kotlin SDK skills are not listed because those repositories are not pu
 - [Self-Hosted Deployments](https://developers.deepgram.com/docs/self-hosted-introduction)
 - [Regional Endpoints](https://developers.deepgram.com/reference/regional-endpoints)
 - [Custom Endpoints](https://developers.deepgram.com/reference/custom-endpoints)
+- [API Rate Limits](https://developers.deepgram.com/reference/api-rate-limits): per-region concurrency tables for every API; limits apply per project, not per API key
+- [Working with Concurrency Rate Limits](https://developers.deepgram.com/docs/working-with-concurrency-rate-limits)

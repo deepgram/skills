@@ -2,7 +2,7 @@
 
 The managed middle ground: Deepgram runs inside your AWS account and VPC, but AWS handles instance provisioning, scaling, and container management. You subscribe to a Deepgram listing on AWS Marketplace and deploy a SageMaker Endpoint — no Quay credentials, no `.dg` model files, no driver installs.
 
-> **There is a dedicated skill for the AWS mechanics.** [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) (public) ships a `deepgram-sagemaker` skill with 13 deterministic scripts covering preflight, product selection, Marketplace subscribe, IAM execution role, quota check, deploy, invoke test, autoscaling, update, and teardown. Install it and use its scripts rather than hand-writing `aws sagemaker create-*` calls:
+> **There is a dedicated skill for the AWS mechanics.** [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) (public) ships a `deepgram-sagemaker` skill with 12 deterministic scripts plus a shared `_common.py` helper, covering preflight, product selection, Marketplace subscribe, model-package ARN lookup, IAM execution role, quota check, deploy, endpoint status, invoke test, autoscaling, update, and teardown. Install it and use its scripts rather than hand-writing `aws sagemaker create-*` calls:
 >
 > ```bash
 > npx skills add deepgram-devs/dg-sagemaker
@@ -15,6 +15,8 @@ The managed middle ground: Deepgram runs inside your AWS account and VPC, but AW
 Choose it when you are AWS-only and want less operational surface than Docker or Kubernetes. Choose full self-hosted containers instead when you need bare metal, a non-AWS cloud, an air gap, or components SageMaker does not package (License Proxy, Billing, SIPREC, UniMRCP).
 
 The tradeoffs versus running containers yourself, and SageMaker pricing, are laid out at [Amazon SageMaker](https://developers.deepgram.com/docs/amazon-sagemaker).
+
+AWS field employees can reach Deepgram models through the [AWS Marketplace Field Demonstration Program](https://docs.aws.amazon.com/marketplace/latest/userguide/field-demonstration-program.html); Deepgram is an eligible provider.
 
 ## Product listings
 
@@ -31,6 +33,16 @@ Individual languages are delivered as **versions** of a model package. One monol
 
 Every product needs a GPU instance. Request [SageMaker quota](https://developers.deepgram.com/docs/request-sagemaker-quota) before creating an endpoint.
 
+Deploy on an ordered **instance pool** rather than a single instance type. A single type has no fallback: when the Availability Zone is short of that GPU, the endpoint goes `Failed` (`Request to service failed` a few minutes in, or `InsufficientInstanceCapacity`), and that happens routinely for popular GPU types. With [instance pools](https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-heterogeneous.html), SageMaker tries each type in priority order and falls back to the next when one is capacity-constrained. Order the pool:
+
+1. The listing's recommended type first (`ml.g6.2xlarge` for STT): the type Deepgram validated the model on, and the best price for the performance.
+2. Same-or-newer generations with similar per-instance capacity next (`g6`, then `g6e`, then `g7`). Similar capacity matters if you autoscale, because the predefined scaling metrics are per instance and do not account for a mixed fleet.
+3. Older generations last, as insurance (`g5`, and `g4dn` where supported).
+4. Never a type the product does not support: `g4dn` for Flux STT, `g5` and `g4dn` for Flux TTS, any single-GPU type for Aura-2.
+5. Up to five types; three is the sweet spot.
+
+`VariantInstanceProvisionTimeoutInSeconds` is the per-type wait before SageMaker moves to the next type: `300` is recommended (AWS allows `60` to `3600`), so a three-type pool can sit in `Creating` for about 15 minutes before it fails. Quota does not fall back: SageMaker validates the quota of every type in the pool at `CreateEndpoint`, and a type with a regional quota below `1` fails the call with `ResourceLimitExceeded` regardless of which type would have been used. CLI and Boto3 examples: [Choose instance types](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#choose-instance-types).
+
 | Product | Recommended | Also supported | Not supported |
 |---|---|---|---|
 | Nova-3 STT | `ml.g6.2xlarge` | `ml.g7.2xlarge`, `ml.g7e.2xlarge`, `ml.g6e.2xlarge`, `ml.g5.2xlarge`, `ml.g4dn.2xlarge` | — |
@@ -44,7 +56,7 @@ SageMaker rejects an endpoint configuration whose instance type is absent from t
 aws sagemaker describe-model-package --model-package-name <model-package-arn>
 ```
 
-The host driver is set by the **inference AMI version**, separately from the instance type, and current Deepgram packages require a recent one. See [Inference AMI Versions](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#inference-ami-versions).
+The host driver is set by the **inference AMI version**, separately from the instance type. `InferenceAmiVersion=al2023-ami-sagemaker-inference-gpu-4-1` (NVIDIA driver 580, CUDA 13.0) is required on the production variant: current Deepgram model packages run a CUDA 13 runtime that needs driver 580 or later, and without it SageMaker boots the instance family's default AMI (an older driver on `g4dn` and `g5`) and the container fails its CUDA preflight check. The SageMaker AI console cannot set this field, so create the endpoint configuration with the AWS CLI, Boto3, or Terraform (`inference_ami_version`). See [Inference AMI Versions](https://developers.deepgram.com/docs/deploy-amazon-sagemaker#inference-ami-versions).
 
 A machine-readable equivalent of this table — product IDs, invocation modes, supported instance types, required parameters — is [`references/products.json`](https://github.com/deepgram-devs/dg-sagemaker/blob/main/skills/deepgram-sagemaker/references/products.json).
 
@@ -158,7 +170,7 @@ Examples: `examples/stt.mjs`, `tts.mjs`, `flux.mjs`, `flux-tts.mjs`, `live-mic.m
 
 ### Java
 
-Requires **Java 11+** and Deepgram Java SDK **v0.4.0+** — the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.10.0`, which satisfies the floor. Pin deliberately and test the pairing.
+Requires **Java 11+** and Deepgram Java SDK **v0.4.0+**: the `default ReconnectOptions reconnectOptions()` hook on `DeepgramTransportFactory` is what enables storm absorption. The transport's README pins `0.4.0` in its install snippet; Maven Central's latest Java SDK is `0.11.0`, which satisfies the floor. Pin deliberately and test the pairing.
 
 ```groovy
 dependencies {
@@ -194,7 +206,7 @@ Examples: `examples/src/main/java/com/deepgram/examples/` — `SageMakerTranspor
 
 ## Validating an endpoint
 
-Beyond the transports, [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) holds runnable client scripts per product and language: `python-stt/`, `python-flux/`, `python-flux-tts/`, `js-stt/`, and `java/stt/` (both an AWS-SDK and a Deepgram-SDK variant). See [Validate a Deepgram SageMaker Endpoint](https://developers.deepgram.com/docs/test-amazon-sagemaker-endpoint).
+Beyond the transports, [`deepgram-devs/dg-sagemaker`](https://github.com/deepgram-devs/dg-sagemaker) holds runnable client scripts per product and language: `python-stt/`, `python-flux/`, `python-tts/`, `python-flux-tts/`, `js-stt/`, and `java/stt/` (both an AWS-SDK and a Deepgram-SDK variant). See [Validate a Deepgram SageMaker Endpoint](https://developers.deepgram.com/docs/test-amazon-sagemaker-endpoint).
 
 ## Operations
 

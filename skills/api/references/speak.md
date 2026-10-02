@@ -74,19 +74,19 @@ Synthesize a complete block of text into a single audio response using Deepgram'
 - `expressivity` `-2` | `-1` | `0` | `1` | `2` (default: `0`) — Expressive range of the generated speech, on a calm-to-animated axis. Accepted values: `-2`, `-1`, `0`, `1`, `2`. `0` (the default) is the voice's tuned delivery and the production-validated setting, with `-2` the calm end of the range and `2` the animated end. Supported on all Flux voices; applies to the whole request. Beta: behavior may change in future model versions, and non-default values increase the risk of hallucinations and pronunciation errors; audition before shipping. An invalid value is rejected with a `400` — `EXPRESSIVITY_OUT_OF_RANGE` for a value outside the range, `EXPRESSIVITY_INCREMENT_INVALID` for a fractional value. See [Expressivity](/docs/tts-expressivity).
 - `model` string **(required)** — Flux TTS model used to synthesize the submitted text, in the form `flux-{voice}-{language}` (for example, `flux-alexis-en`). Required; unlike the v1 (Aura) endpoint there is no default and only flux models are accepted. English-only at launch.
 - `sample_rate` `8000` | `16000` | `24000` | `32000` | `44100` | `48000` | `8000` | `16000` | `8000` | `16000` | `8000` | `16000` | `22050` | `32000` | `48000` (default: `24000`) — Sample Rate specifies the sample rate for the output audio. Based on the encoding, different sample rates are supported. For some encodings, the sample rate is not configurable
-- `speed` number (default: `1`) — Speaking rate multiplier that adjusts the pace of generated speech while preserving natural prosody and voice quality. Accepted values run `0.5` to `1.5` in `0.05` increments. Not yet supported in all languages.
+- `speed` number (default: `1`) — Speaking rate multiplier that adjusts the pace of generated speech while preserving natural prosody and voice quality. Accepted values run `0.5` to `1.5` in `0.05` increments. Not yet supported in all languages. When the text contains an inline pause marker, speed is capped at `1.15` (`PAUSE_SPEED_CAP_EXCEEDED` above that). A value other than `1.0` cannot be combined with inline pronunciation controls (`CONTROL_COMBINATION_INVALID`).
 - `priority` `low` — Processing priority for asynchronous (callback) requests. The only supported value is low.
 
 #### Request Body
 
 **application/json**
 
-- `text` string **(required)** — The text content to be converted to speech. The server normalizes and preprocesses the text before synthesis. Inline pause and pronunciation controls are not yet applied; they are stripped from the text before synthesis.
+- `text` string **(required)** — The text content to be converted to speech. The server normalizes and preprocesses the text before synthesis. May contain inline pause controls (`\{pause:500ms\}`, 500-3000 ms in 100 ms steps, at most 8 per request) and inline pronunciation controls (`\{"word": "...", "pronounce": "<IPA>"\}`, Early Access). Pronunciation cannot be combined with pause or with a `speed` other than `1.0`, and `speed` is capped at `1.15` when a pause is present. See [Speed, Pause, Pronunciation](/docs/tts-voice-controls).
 
 #### Responses
 
 **200**: Returns the synthesized audio in the requested encoding as a binary stream. When a `callback` URL is supplied, the request is processed asynchronously and the response body is instead a JSON acknowledgement (Content-Type `application/json`) of the form {"request_id": "..."}, with the audio delivered to the callback URL. Because this endpoint is typed as a binary audio stream, SDK callers that set `callback` receive this JSON acknowledgement through the audio byte iterator as raw bytes and must join the chunks and parse `request_id` themselves.
-**400**: Invalid Request. Inline pause and pronunciation controls are not applied and are stripped rather than rejected.
+**400**: Invalid Request. Inline control violations return a structured error whose `err_code` names the rule: `CONTROL_COMBINATION_INVALID` (pronunciation combined with speed or pause, or all three together), `PAUSE_SPEED_CAP_EXCEEDED` (a pause marker with `speed` above `1.15`), `BREAK_OUT_OF_RANGE` (a pause outside 500-3000 ms), `BREAK_INCREMENT_INVALID` (a pause off the 100 ms grid), `BREAKS_LIMIT_EXCEEDED` (more than 8 pause markers, or two pauses with no text between them), `BREAK_SYNTAX_INVALID` (a malformed pause marker, such as a simple marker without backslashes or an escaped structured marker), plus the existing pronunciation and speed codes. A `speed` of `1.0` does not count as a speed control for the combination rules. See [Speed, Pause, Pronunciation](/docs/tts-voice-controls).
 
 ## WebSocket API
 
@@ -164,7 +164,7 @@ per-turn billing and timing.
 - `model` string — The Flux TTS model used to synthesize speech. Required on every connection. Model strings follow the format `flux-{voice}-{language}` (e.g. `flux-alexis-en`). An Aura model string is rejected on `/v2/speak`; use `/v1/speak` for Aura voices.
 - `encoding` `linear16` | `mulaw` | `alaw` (default: `linear16`) — Encoding of the raw output audio. The streaming WebSocket emits raw (non-containerized) audio, so only streaming-compatible encodings are supported. Compressed and containerized encodings (`mp3`, `opus`, `flac`, `aac`) are available on the batch REST transport only.
 - `sample_rate` `8000` | `16000` | `24000` | `32000` | `44100` | `48000` — Output sample rate in Hz. With `linear16`, valid values are `8000`, `16000`, `24000`, `32000`, `44100`, and `48000`. With `mulaw` or `alaw`, valid values are `8000` and `16000`. Defaults to the model's native sample rate.
-- `speed` number (default: `1`) — Speech-rate multiplier. `1.0` is the model's nominal rate; lower is slower. Accepted values run `0.5` to `1.5` in `0.05` increments. A value outside that range is rejected with `SPEED_OUT_OF_RANGE`; a value inside it but off the `0.05` increment with `SPEED_INCREMENT_INVALID`. Models and languages without runtime speed control reject any value with `SPEED_NOT_SUPPORTED`.
+- `speed` number (default: `1`) — Speech-rate multiplier. `1.0` is the model's nominal rate; lower is slower. Accepted values run `0.5` to `1.5` in `0.05` increments. A value outside that range is rejected with `SPEED_OUT_OF_RANGE`; a value inside it but off the `0.05` increment with `SPEED_INCREMENT_INVALID`. Models and languages without runtime speed control reject any value with `SPEED_NOT_SUPPORTED`. A speed other than `1.0` cannot be combined with inline pronunciation controls; see [Speed, Pause, Pronunciation](/docs/tts-voice-controls).
 - `expressivity` `-2` | `-1` | `0` | `1` | `2` (default: `0`) — Expressive range of the generated speech, on a calm-to-animated axis. Accepted values: `-2`, `-1`, `0`, `1`, `2`. `0` (the default) is the voice's tuned delivery and the production-validated setting, with `-2` the calm end of the range and `2` the animated end. Supported on all Flux voices. Fixed for the connection — not settable via `Configure`. Beta: behavior may change in future model versions, and non-default values increase the risk of hallucinations and pronunciation errors; audition before shipping. An invalid value fails the connection with a `400` — `EXPRESSIVITY_OUT_OF_RANGE` for a value outside the range, `EXPRESSIVITY_INCREMENT_INVALID` for a fractional value. See [Expressivity](/docs/tts-expressivity).
 - `mip_opt_out` boolean (default: `false`) — Opts out requests from the Deepgram Model Improvement Program. Refer to our Docs for pricing impacts before setting this to true. https://dpgr.am/deepgram-mip
 - `tag` string | string[] — Label your requests for the purpose of identification during usage reporting
@@ -174,7 +174,7 @@ per-turn billing and timing.
 **SpeakV2Speak** — Send text to be synthesized into the active turn
 
   - `type` `Speak` **(required)** — Message type identifier
-  - `text` string **(required)** — The input text to synthesize. Inline pause and pronunciation controls are not yet applied; they are stripped from the text before synthesis.
+  - `text` string **(required)** — The input text to synthesize. May contain inline pronunciation controls (`\{"word": "...", "pronounce": "<IPA>"\}`), which are in Early Access. Inline pause controls are supported on the batch (REST) transport only; a pause marker sent over the WebSocket fails the connection with `DATA-0002`. Pronunciation cannot be combined with a `speed` other than `1.0`: text carrying a pronunciation control on a session opened with `speed`, or after a `Configure` that set it, also fails the connection with `DATA-0002`. See [Speed, Pause, Pronunciation](/docs/tts-voice-controls).
 
 **SpeakV2Flush** — End the active turn and generate the remaining audio
 
@@ -190,7 +190,7 @@ per-turn billing and timing.
 **SpeakV2Configure** — Update synthesis configuration mid-session
 
   - `type` `Configure` **(required)** — Message type identifier
-  - `speed` number (default: `1`) — Speech-rate multiplier. `1.0` is the model's nominal rate; lower is slower. Accepted values run `0.5` to `1.5` in `0.05` increments. A value outside that range is rejected with `SPEED_OUT_OF_RANGE`; a value inside it but off the `0.05` increment with `SPEED_INCREMENT_INVALID`. Models and languages without runtime speed control reject any value with `SPEED_NOT_SUPPORTED`.
+  - `speed` number (default: `1`) — Speech-rate multiplier. `1.0` is the model's nominal rate; lower is slower. Accepted values run `0.5` to `1.5` in `0.05` increments. A value outside that range is rejected with `SPEED_OUT_OF_RANGE`; a value inside it but off the `0.05` increment with `SPEED_INCREMENT_INVALID`. Models and languages without runtime speed control reject any value with `SPEED_NOT_SUPPORTED`. A speed other than `1.0` cannot be combined with inline pronunciation controls; see [Speed, Pause, Pronunciation](/docs/tts-voice-controls).
 
 **SpeakV2Close** — Gracefully close the connection, draining all remaining and queued audio
 
@@ -220,7 +220,7 @@ per-turn billing and timing.
   - `audio_duration_ms` integer **(required)** — Total audio duration produced for this turn, in milliseconds
   - `input_character_count` integer **(required)** — Raw input character count for this turn, before text normalization
   - `billable_character_count` integer **(required)** — Billable character count for this turn — the input character count with stripped control characters removed. Always less than or equal to `input_character_count`.
-  - `controls_applied` { pronunciations_applied: integer, breaks_applied: integer, pronunciation_warnings: integer } **(required)** — Counts of the inline controls the server acted on during the turn. Inline pause and pronunciation controls are not applied at launch — support is coming soon — so every count is currently `0`.
+  - `controls_applied` { pronunciations_applied: integer, breaks_applied: integer, pronunciation_warnings: integer } **(required)** — Counts of the inline controls the server acted on during the turn. A pronunciation override that triggers an IPA warning is still applied best-effort and counted in `pronunciations_applied`; the warning is reported separately through a `Warning` and `pronunciation_warnings`.
 
 **SpeakV2SpeechInterrupted** — Receive what the user heard, and the interrupted turn's billing, after an Interrupt
 
@@ -250,7 +250,7 @@ per-turn billing and timing.
 **SpeakV2ConfigureFailure** — Receive notice that a Configure was rejected or failed to apply; the prior configuration is retained
 
   - `type` `ConfigureFailure` **(required)** — Message type identifier
-  - `code` `SPEED_OUT_OF_RANGE` | `SPEED_INCREMENT_INVALID` | `SPEED_NOT_SUPPORTED` | `INTERNAL_ERROR` **(required)** — Failure code, in `SCREAMING_SNAKE_CASE`. `SPEED_OUT_OF_RANGE`: outside the range the model publishes. `SPEED_INCREMENT_INVALID`: inside the published range but off the `0.05` increment. `SPEED_NOT_SUPPORTED`: this model or language has no runtime speed control at all. `INTERNAL_ERROR`: the configuration was acceptable but the server could not apply it — unlike the others, a server-side failure rather than a statement about the request.
+  - `code` `SPEED_OUT_OF_RANGE` | `SPEED_INCREMENT_INVALID` | `SPEED_NOT_SUPPORTED` | `CONTROL_COMBINATION_INVALID` | `INTERNAL_ERROR` **(required)** — Failure code, in `SCREAMING_SNAKE_CASE`. `SPEED_OUT_OF_RANGE`: outside the range the model publishes. `SPEED_INCREMENT_INVALID`: inside the published range but off the `0.05` increment. `SPEED_NOT_SUPPORTED`: this model or language has no runtime speed control at all. `CONTROL_COMBINATION_INVALID`: `speed` was set while a turn buffered behind the active one still carries a pronunciation control; pronunciation and speed cannot be combined, so flush that turn before setting speed (pronunciations in the active turn do not block the change). `INTERNAL_ERROR`: the configuration was acceptable but the server could not apply it — unlike the others, a server-side failure rather than a statement about the request.
   - `field` `speed` — The configuration field the failure is about. Absent when the failure is not tied to one field.
   - `value` number — The rejected value for `field`. Absent when there is no offending value to echo — `SPEED_NOT_SUPPORTED` names the field but carries no value, because the rejection is a property of the model.
   - `description` string **(required)** — A human-readable description of the failure
@@ -262,7 +262,9 @@ per-turn billing and timing.
 
     Turn-scoped codes: `NO_ACTIVE_SPEECH` (a speech-scoped message arrived with no active turn), `NO_SYNTHESIZABLE_TEXT` (the turn's text was entirely whitespace or punctuation, so it produced no audio and is completed with a zero-duration `SpeechMetadata`), and `SYNTHESIS_RETRYING` (a synthesis request failed and is being retried).
 
-    Inline-control codes are reserved and not currently emitted, because inline pause and pronunciation controls are not yet applied: `BREAKS_LIMIT_EXCEEDED` (too many pause controls, or two pauses with no intervening text), `BREAK_TOKENS_OUT_OF_RANGE` (pause durations outside the range the model supports), `BREAK_TOKENS_WITH_INVALID_INCREMENTS` (pause durations off the model's supported increment), `PRONUNCIATION_WARNINGS` (a pronunciation override contained invalid IPA), `PRONUNCIATION_TOO_LONG` (an IPA string exceeded the length limit), `PRONUNCIATIONS_LIMIT_EXCEEDED` (too many pronunciation controls in one turn).
+    Pronunciation codes: `PRONUNCIATION_WARNINGS` (a pronunciation override contained invalid IPA; it is still applied best-effort and counted in `pronunciations_applied`), `PRONUNCIATION_TOO_LONG` (an IPA string exceeded the length limit), `PRONUNCIATIONS_LIMIT_EXCEEDED` (too many pronunciation controls in one turn).
+
+    Pause codes (`BREAKS_LIMIT_EXCEEDED`, `BREAK_TOKENS_OUT_OF_RANGE`, `BREAK_TOKENS_WITH_INVALID_INCREMENTS`) are reserved and not emitted: inline pause controls are batch-only, and a pause marker on the WebSocket fails the connection instead.
 
     Interrupt-scoped codes, each meaning the `Interrupt` was ignored: `NO_AUDIO_GENERATED` (the session has produced no audio yet, so there is nothing to interrupt), `INTERRUPT_IN_PROGRESS` (an earlier `Interrupt` is still being processed — at most one is handled at a time), `INVALID_INTERRUPT_OFFSET` (the `playback_offset` did not advance past the position a prior interrupt established).
   - `description` string **(required)** — A human-readable description of the warning
@@ -270,5 +272,5 @@ per-turn billing and timing.
 **SpeakV2Error** — Receive a fatal error message followed by a WebSocket close
 
   - `type` `Error` **(required)** — Message type identifier
-  - `code` `MESSAGE-0000` | `DATA-0000` | `DATA-0002` | `BIG-0000` | `NET-0000` | `NET-0001` | `NET-0002` | `NET-0003` | `NET-0004` **(required)** — A code identifying the error, e.g. `MESSAGE-0000` or `NET-0000`.
+  - `code` `MESSAGE-0000` | `DATA-0000` | `DATA-0002` | `BIG-0000` | `NET-0000` | `NET-0001` | `NET-0002` | `NET-0003` | `NET-0004` **(required)** — A code identifying the error, e.g. `MESSAGE-0000` or `NET-0000`. `DATA-0002` covers invalid inline controls and speed, including an inline pause marker (pause is batch-only) and a pronunciation control combined with a `speed` other than `1.0`; `description` names the specific rule.
   - `description` string **(required)** — Prose description of the error

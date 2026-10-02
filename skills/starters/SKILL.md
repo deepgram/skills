@@ -66,9 +66,13 @@ git clone --recurse-submodules https://github.com/deepgram-starters/{framework}-
 cd {framework}-{feature}
 ```
 
-Both submodule URLs in `.gitmodules` are SSH (`git@github.com:...`) even though both repositories
-are public, so `--recurse-submodules` fails with `Host key verification failed` unless the user
-has a GitHub SSH key. Without one, rewrite SSH to HTTPS for the clone:
+In 80 of the 96 starters, both submodule URLs in `.gitmodules` are SSH (`git@github.com:...`)
+even though both repositories are public, so `--recurse-submodules` fails with
+`Host key verification failed` unless the user has a GitHub SSH key. The other 16 use HTTPS URLs
+and clone without a key: 12 of the 13 `{framework}-live-transcription` starters (every one except
+`rust-live-transcription`) plus `csharp-voice-agent`, `django-voice-agent`, `flask-voice-agent`,
+and `node-voice-agent`. Without an SSH key, rewrite SSH to HTTPS for the clone. The rewrite
+changes nothing on the 16 HTTPS starters, so it is safe to use on every starter:
 
 ```sh
 git -c url."https://github.com/".insteadOf="git@github.com:" \
@@ -76,8 +80,9 @@ git -c url."https://github.com/".insteadOf="git@github.com:" \
 ```
 
 The starter's own `make init` runs `git submodule update --init --recursive` and installs
-dependencies, but it inherits the same SSH URLs — it fails identically without a key, so it is
-the path for users who **have** SSH set up, not a workaround for users who don't.
+dependencies, but it inherits the URLs in `.gitmodules`. On the 80 SSH starters it fails
+identically without a key, so it is the path for users who **have** SSH set up (or for one of the
+16 HTTPS starters), not a workaround for users who don't.
 
 Set your API key and follow the README:
 
@@ -101,9 +106,9 @@ dg init node-transcription --dir ./my-app
 
 **`dg init` does not solve the submodule problem.** It runs a plain clone, so `frontend/` and
 `contracts/` land empty, and it still prints `Done! … is ready` and `"status": "success"`. Adding
-`--install` runs the starter's `make check-prereqs && make init`, which hits the same SSH URLs and
-fails with `Host key verification failed` — and `dg init` reports success anyway. Without a GitHub
-SSH key, finish the checkout by hand after `dg init`:
+`--install` runs the starter's `make check-prereqs && make init`, which hits the same `.gitmodules`
+URLs: on the 80 SSH starters it fails with `Host key verification failed`, and `dg init` reports
+success anyway. Without a GitHub SSH key, finish the checkout by hand after `dg init`:
 
 ```sh
 cd my-app
@@ -113,10 +118,11 @@ git -c url."https://github.com/".insteadOf="git@github.com:" \
 
 `dg init` is also marked alpha, and its templates gallery is a separate list from the matrix
 below rather than a subset of it. It carries 44 templates with no `flux` or `flux-tts` entries;
-it still lists `sinatra-transcription`, whose repository is archived; and it lists `nextjs-*`
-templates that now redirect out of `deepgram-starters` to `deepgram-devs`, which is why there is
-no `nextjs` row below. Treat the matrix as authoritative and fall back to `git clone`. See the
-`cli` skill for installing `deepctl` and for the rest of `dg init`.
+it still lists `sinatra-transcription`, whose repository is archived and private, so the clone
+returns 404 for anyone outside Deepgram; and it lists `nextjs-*` templates that now redirect out
+of `deepgram-starters` to `deepgram-devs`, which is why there is no `nextjs` row below. Treat
+the matrix as authoritative and fall back to `git clone`. See the `cli` skill for installing
+`deepctl` and for the rest of `dg init`.
 
 ## The `{feature}-html` repos are not starters
 
@@ -162,6 +168,10 @@ directory — that is the same browser code the `{feature}-html` submodule holds
 Every URL below is a real, published, non-archived repository, and the table is the complete
 set: 13 frameworks × 7 features, plus `flux-tts` for the five frameworks that have it. A cell
 showing `—` means that starter does not exist; don't construct the URL.
+
+The `java-flux-tts` README clones with a plain `git clone`, without `--recurse-submodules`, while
+its `.gitmodules` points both submodules at SSH URLs, so following its Maven steps leaves
+`frontend/` and `contracts/` empty. Use the clone command in section 3 instead.
 
 | | transcription | live-transcription | text-to-speech | live-text-to-speech | text-intelligence | voice-agent | flux | flux-tts |
 |---|---|---|---|---|---|---|---|---|
