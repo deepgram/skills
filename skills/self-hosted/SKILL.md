@@ -126,13 +126,13 @@ Audio intelligence features (entity detection, redaction, NER formatting) depend
 
 Be honest with anyone planning a timeline. These cannot be self-served and are not in public documentation:
 
-- **Project access to self-hosted products** — Enterprise agreement, via sales.
-- **Every `.dg` model file** — links from your account representative. This is the hard blocker: you can pull images and write configs without one, and still serve nothing.
-- **`[flux] max_streams`** — the concurrency limit per GPU. There is no published per-GPU table; the doc says to ask your account representative. Leaving it auto-calculated causes agents to hang, dropped calls, and `audio_window_end increased by more than 3 frames` in API logs.
-- **`[flux_tts] max_batch_size`** — no safe default exists; Engine refuses to start while it is `0`, which is what the shipped templates set. The right value differs substantially per GPU and comes from your account representative.
-- **The Flux TTS model `uuid`** — partly gated. The Helm chart and the docs page both use an empty placeholder, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) hardcode a real UUID, so a Compose user who downloads the template already has a working value. The template comment still says to obtain it from your account representative — confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
+- **Project access to self-hosted products**: Enterprise agreement, via sales.
+- **Every `.dg` model file**: links from your account representative. This is the hard blocker: you can pull images and write configs without one, and still serve nothing.
+- **`[flux] max_streams`**: the concurrency limit per GPU. There is no published per-GPU table; the doc says to ask your account representative. Leaving it auto-calculated causes agents to hang, dropped calls, and `audio_window_end increased by more than 3 frames` in API logs.
+- **`[flux_tts] max_batch_size`**: no safe default exists; Engine refuses to start while it is `0`, which is what the shipped templates set. The right value differs substantially per GPU and comes from your account representative.
+- **The Flux TTS model `uuid`**: partly gated. The chart's `values.yaml` default and the docs page are empty placeholders, but the two shipped Compose templates (`common/*/engine.flux-tts.toml`) and the chart's `samples/08-flux-tts-setup.values.yaml` hardcode a real UUID, so a Compose or sample-values user already has a working value. The template comment still says to obtain it from your account representative — confirm the UUID matches the release you are deploying rather than assuming the checked-in one is current.
 - **The Flux TTS watermarker model**: `watermarker.<uuid>.dgv2`, provisioned with the Flux TTS model. From `release-261001`, Engine will not start Flux TTS without it, and `[flux_tts] watermarker_uuid` (Helm `fluxTts.watermarkerUuid`) must name it. The Compose templates and the chart's `samples/08-flux-tts-setup.values.yaml` ship `2c4e7068-5d1d-4425-a207-b2f221fabe79`; the chart's `values.yaml` default is empty, and the docs page leaves it for your account representative.
-- **License Proxy entitlement** — via Support.
+- **License Proxy entitlement**: via Support.
 - **Air-gapped license file** — a one-line JSON file issued by Deepgram.
 - **Pricing**: self-hosted is a sales conversation. No figure belongs in a skill; start at [deepgram.com/pricing](https://deepgram.com/pricing) and [contact us](https://deepgram.com/contact-us).
 
