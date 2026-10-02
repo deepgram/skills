@@ -80,8 +80,9 @@ original input returned as-is, and no tokens in or out are billed as summarizati
 On the live socket, `detect_entities=true` adds a **top-level** `entities` array to `Results`
 messages, next to `channel` and not inside `channel.alternatives[0]`. Read entities only from
 messages whose `is_final` is `true`. Interim results can carry the key too, usually `[]` and
-sometimes populated, and those values are not final. A final result with nothing detected carries `"entities": []`. Same
-field shape as above, `raw_value` included when formatting is on. [4]
+sometimes populated, and those values are not final. A final result with nothing detected
+carries `"entities": []`. Same field shape as above, `raw_value` included when formatting is on.
+[4]
 
 To return complete entities, the server holds a final result until the speaker moves on to
 non-entity speech, 3 seconds of silence pass, or a `Finalize` message arrives. `no_delay=true`

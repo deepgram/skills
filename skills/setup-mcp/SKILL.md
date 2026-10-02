@@ -294,7 +294,7 @@ For Path C, add:
 Link them to [Deepgram Agentic Tools](https://developers.deepgram.com/developer-tools/agentic-tools)
 for more details. Its two kapa URLs, `https://api.dx.deepgram.com/kapa/mcp` and
 `https://deepgram.mcp.kapa.ai`, require credentials: an unauthenticated `initialize` returns 401.
-The Docs MCP server at `/_mcp/server` is the credential-free path.
+The Docs MCP server at `https://developers.deepgram.com/_mcp/server` is the credential-free path.
 
 ## Troubleshooting
 

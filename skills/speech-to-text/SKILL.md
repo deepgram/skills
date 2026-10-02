@@ -21,7 +21,7 @@ Deepgram transcribes audio with two model families on two endpoints. Pick the fa
 | Endpoint | `/v1/listen`, REST and WebSocket | `/v2/listen`, WebSocket only |
 | Output | A transcript stream | `TurnInfo` events carrying turn state and a transcript per turn |
 | Turn detection | None built in; you use endpointing and your own logic | Built in: `StartOfTurn`, `EagerEndOfTurn`, `TurnResumed`, `EndOfTurn` |
-| Formatting and analysis | `smart_format`, `diarize_model`, `summarize`, `sentiment`, `topics`, `intents`, redaction | Word timestamps, `numerals`, `redact` (`numbers` or `aggressive_numbers`), `keyterm`, `mip_opt_out`, `tag`; no smart formatting, no diarization |
+| Formatting and analysis | `smart_format`, `diarize_model`, `summarize`, `sentiment`, `topics`, `intents`, redaction | Word timestamps, `numerals`, `redact` (`numbers` or `aggressive_numbers`), `keyterm`, `profanity_filter`, `mip_opt_out`, `tag`; no smart formatting, no diarization |
 | Language | `language=<code>`, or `language=multi` for code-switching | The model name selects the language; `language_hint` biases `flux-general-multi` |
 
 Decision rule:
@@ -62,7 +62,7 @@ wss://api.deepgram.com/v2/listen?model=flux-general-en&encoding=linear16&sample_
 
 Send the same `Authorization: Token` header. Audio must be mono. For raw audio (`linear16`, `linear32`, `mulaw`, `alaw`, `opus`, `ogg-opus`) `encoding` and `sample_rate` are required; for WAV, Ogg, or WebM containers omit both. Send 80 ms chunks. Flux STT has no `KeepAlive` message: WebSocket pings replace it, with a 60-second timeout. For in-region processing use `wss://api.eu.deepgram.com/v2/listen`, `wss://api.au.deepgram.com/v2/listen`, or `wss://api.in.deepgram.com/v2/listen` with the same key.
 
-Two query parameters on `/v2/listen` behave differently from Nova:
+Two query parameters on `/v2/listen` to note:
 
 - `redact` takes `numbers` or `aggressive_numbers`; any other value fails the handshake with 400. Each redacted span becomes a single `*`, not `[REDACTED]` or an entity tag.
 - `profanity_filter=true` works on `/v2/listen`, `language=multi` included.
@@ -143,6 +143,7 @@ Deepgram bills speech-to-text per minute of audio. Figures change, so read them 
 - Flux STT turn-detection parameters (the threshold table): https://developers.deepgram.com/docs/flux/configuration
 - Flux control messages: https://developers.deepgram.com/docs/flux/configure, https://developers.deepgram.com/docs/flux/force-end-turn, https://developers.deepgram.com/docs/flux/close-stream
 - Flux STT feature matrix (profanity filter, redaction scope, control messages): https://developers.deepgram.com/docs/flux/feature-overview
+- Profanity filter, including Flux STT `language=multi`: https://developers.deepgram.com/docs/profanity-filter
 - Bring your own turn detection (`eot_threshold=1.0` plus `ForceEndTurn`): https://developers.deepgram.com/docs/flux/own-turn-detection
 - Flux STT in a voice agent and eager end of turn (LLM call cost): https://developers.deepgram.com/docs/flux/agent and https://developers.deepgram.com/docs/flux/voice-agent-eager-eot
 - Redaction, including the Flux STT `*` placeholder: https://developers.deepgram.com/docs/redaction

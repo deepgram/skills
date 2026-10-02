@@ -201,8 +201,8 @@ quote figures from memory.
 
    Send plain text. SSML is not interpreted; the only markup Flux TTS honors is its own escaped
    controls, pronunciation on both transports and pause on batch. Recognized SSML, ElevenLabs, and
-   Cartesia tags are stripped, with one `INPUT_MARKUP_STRIPPED` warning per `Speak`; markup outside that
-   detector is forwarded verbatim and may be spoken. See
+   Cartesia tags are stripped, with one `INPUT_MARKUP_STRIPPED` warning per `Speak`; markup the
+   detector does not match (Markdown, HTML, custom XML) is forwarded verbatim and may be spoken. See
    https://developers.deepgram.com/docs/flux-tts/client-messages.
 7. Pointing a Voice Agent at api.deepgram.com. The Voice Agent API lives at `wss://agent.deepgram.com`
    and picks the TTS family from `agent.speak.provider.version`: `v2` for Flux TTS, `v1` for Aura.
