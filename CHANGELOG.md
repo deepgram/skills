@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.7.0...HEAD
 
-## [1.7.0] - 2026-10-01
+## [1.7.0] - 2026-10-02
 
 Catch-up with the September API, spec, SDK, CLI, and documentation changes. The headline items are Flux TTS inline pause and pronunciation controls, the Flux STT `Warning` message and mid-stream `numerals`, the Voice Agent reusable-configuration and agent-variable REST surface, and `FunctionCallCancelled` with `defer_until_eot`. Per-SDK availability is corrected across the product skills: which SDKs ship a Flux TTS client, `ForceEndTurn`, mid-stream `numerals`, and the agent-configuration REST clients. The product skills gain the regional hosts `api.eu`, `api.au`, and `api.in.deepgram.com`, the CLI skill tracks `deepctl` 0.3.1 and the Homebrew 6 install form, and the self-hosted skill carries the FIPS constraints and the SageMaker AMI requirement. No skill is added or removed, so the `deepgram` plugin still lists 14 skills.
 
