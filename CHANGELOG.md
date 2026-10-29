@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2026-10-29
 
-October correctness release. The headline items are Voice Agent Think Live (formerly Conversational Mode), Flux TTS in 41 languages besides English, Nova-3 mid-stream `Configure` and `language_hint`, and the CLI skill tracking `deepctl` 0.4.0. The `api` references are regenerated from the live specs. No skill is added or removed, so the `deepgram` plugin still lists 14 skills.
+October correctness release. The headline items are Voice Agent Think Live (formerly Conversational Mode), Flux TTS in 41 languages besides English, Nova-3 mid-stream `Configure` and `language_hint`, and the CLI skill tracking `deepctl` 0.4.0. The `api` references are regenerated from the live specs. Nothing in this release breaks an existing install: no skill is added, removed, or renamed, and the `deepgram` plugin still lists 14 skills.
 
 ```bash
 npx skills add deepgram/skills
