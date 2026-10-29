@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- API skill: regenerated `references/agent.md`, `references/listen.md`, and `references/speak.md` from the live specs (spec-drift #22). Voice Agent gains Think Live: the `agent.think_live` settings block, `UpdateThink_Live` and `ThinkLiveUpdated`, `FrustrationDetected`, the dynamic `InjectAgentMessage` (`is_dynamic: true`), the function filler fields `initial_agent_filler`, `agent_filler_max_count`, and `agent_filler_interval_ms`, and the always-sent `ConversationText.conversational_behavior`. `/v1/listen` gains `language_hint` for Nova-3 multilingual on both transports, the mid-stream `Configure` message with `ConfigureSuccess` and `ConfigureFailure` (four codes), the non-fatal `Error` message, and `languages_hinted` on streaming results. `/v2/speak` drops "English-only at launch" from `model`, and `text` now lists the ten languages that get text normalization; the others are Early Access without it
+
 [Unreleased]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.7.0...HEAD
 
 ## [1.7.0] - 2026-10-02

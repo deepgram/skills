@@ -192,7 +192,7 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
   - `flags` { history: boolean }
   - `mip_opt_out` boolean (default: `false`) — To opt out of Deepgram Model Improvement Program
   - `audio` { input: { encoding: `linear16` | `linear32` | `flac` | `alaw` | `mulaw` | `amr-nb` | `amr-wb` | `opus` | `ogg-opus` | `speex` | `g729`, sample_rate: integer }, output: { encoding: `linear16` | `mulaw` | `alaw` | `mp3` | `opus` | `flac` | `aac`, sample_rate: integer, bitrate: integer, container: `none` | `wav` | `ogg` } } **(required)**
-  - `agent` { language: string, context: { messages: object | object[] }, listen: { provider: object | object }, think: { provider: object | object | object | object | object, endpoint: object, functions: object[], prompt: string, context_length: `max` | number } | { provider: object | object | object | object | object, endpoint: object, functions: object[], prompt: string, context_length: `max` | number }[], speak: { provider: object | object | object | object | object, endpoint: object } | { provider: object | object | object | object | object, endpoint: object }[], greeting: string } | string **(required)**
+  - `agent` { language: string, context: { messages: object | object[] }, listen: { provider: object | object }, think: { provider: object | object | object | object | object, endpoint: object, functions: object[], prompt: string, context_length: `max` | number } | { provider: object | object | object | object | object, endpoint: object, functions: object[], prompt: string, context_length: `max` | number }[], think_live: { provider: object }, speak: { provider: object | object | object | object | object, endpoint: object } | { provider: object | object | object | object | object, endpoint: object }[], greeting: string } | string **(required)**
 
 **AgentV1UpdateListen** — Send update listen to Deepgram's Voice Agent API
 
@@ -202,7 +202,12 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 **AgentV1UpdateThink** — Send update think to Deepgram's Voice Agent API
 
   - `type` `UpdateThink` **(required)** — Message type identifier for updating the think model
-  - `think` { provider: { type: `open_ai`, version: `v1`, model: `gpt-5` | `gpt-5-mini` | `gpt-5-nano` | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` | `gpt-4o` | `gpt-4o-mini`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` } | { type: `aws_bedrock`, model: `anthropic/claude-3-5-sonnet-20240620-v1:0` | `anthropic/claude-3-5-haiku-20240307-v1:0`, temperature: number, credentials: object } | { type: `anthropic`, version: `v1`, model: `claude-3-5-haiku-latest` | `claude-sonnet-4-20250514`, temperature: number } | { type: `google`, version: `ai-studio-v1beta` | `gemini-enterprise-agent-v1` | `v1beta`, model: `gemini-2.0-flash` | `gemini-2.0-flash-lite` | `gemini-2.5-flash`, temperature: number } | { type: `groq`, version: `v1`, model: `openai/gpt-oss-20b`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` }, endpoint: { url: string, headers: object }, functions: { name: string, description: string, parameters: object, defer_until_eot: boolean, endpoint: object }[], prompt: string, context_length: `max` | number } | { provider: { type: `open_ai`, version: `v1`, model: `gpt-5` | `gpt-5-mini` | `gpt-5-nano` | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` | `gpt-4o` | `gpt-4o-mini`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` } | { type: `aws_bedrock`, model: `anthropic/claude-3-5-sonnet-20240620-v1:0` | `anthropic/claude-3-5-haiku-20240307-v1:0`, temperature: number, credentials: object } | { type: `anthropic`, version: `v1`, model: `claude-3-5-haiku-latest` | `claude-sonnet-4-20250514`, temperature: number } | { type: `google`, version: `ai-studio-v1beta` | `gemini-enterprise-agent-v1` | `v1beta`, model: `gemini-2.0-flash` | `gemini-2.0-flash-lite` | `gemini-2.5-flash`, temperature: number } | { type: `groq`, version: `v1`, model: `openai/gpt-oss-20b`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` }, endpoint: { url: string, headers: object }, functions: { name: string, description: string, parameters: object, defer_until_eot: boolean, endpoint: object }[], prompt: string, context_length: `max` | number }[] **(required)**
+  - `think` { provider: { type: `open_ai`, version: `v1`, model: `gpt-5` | `gpt-5-mini` | `gpt-5-nano` | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` | `gpt-4o` | `gpt-4o-mini`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` } | { type: `aws_bedrock`, model: `anthropic/claude-3-5-sonnet-20240620-v1:0` | `anthropic/claude-3-5-haiku-20240307-v1:0`, temperature: number, credentials: object } | { type: `anthropic`, version: `v1`, model: `claude-3-5-haiku-latest` | `claude-sonnet-4-20250514`, temperature: number } | { type: `google`, version: `ai-studio-v1beta` | `gemini-enterprise-agent-v1` | `v1beta`, model: `gemini-2.0-flash` | `gemini-2.0-flash-lite` | `gemini-2.5-flash`, temperature: number } | { type: `groq`, version: `v1`, model: `openai/gpt-oss-20b`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` }, endpoint: { url: string, headers: object }, functions: { name: string, description: string, parameters: object, defer_until_eot: boolean, initial_agent_filler: boolean, agent_filler_max_count: integer, agent_filler_interval_ms: integer, endpoint: object }[], prompt: string, context_length: `max` | number } | { provider: { type: `open_ai`, version: `v1`, model: `gpt-5` | `gpt-5-mini` | `gpt-5-nano` | `gpt-4.1` | `gpt-4.1-mini` | `gpt-4.1-nano` | `gpt-4o` | `gpt-4o-mini`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` } | { type: `aws_bedrock`, model: `anthropic/claude-3-5-sonnet-20240620-v1:0` | `anthropic/claude-3-5-haiku-20240307-v1:0`, temperature: number, credentials: object } | { type: `anthropic`, version: `v1`, model: `claude-3-5-haiku-latest` | `claude-sonnet-4-20250514`, temperature: number } | { type: `google`, version: `ai-studio-v1beta` | `gemini-enterprise-agent-v1` | `v1beta`, model: `gemini-2.0-flash` | `gemini-2.0-flash-lite` | `gemini-2.5-flash`, temperature: number } | { type: `groq`, version: `v1`, model: `openai/gpt-oss-20b`, temperature: number, reasoning_mode: `none` | `minimal` | `low` | `medium` | `high` }, endpoint: { url: string, headers: object }, functions: { name: string, description: string, parameters: object, defer_until_eot: boolean, initial_agent_filler: boolean, agent_filler_max_count: integer, agent_filler_interval_ms: integer, endpoint: object }[], prompt: string, context_length: `max` | number }[] **(required)**
+
+**AgentV1UpdateThinkLive** — Send an update to the Think Live model configuration to Deepgram's Voice Agent API
+
+  - `type` `UpdateThink_Live` **(required)** — Message type identifier for updating the Think Live model configuration
+  - `think_live` { provider: { type: `deepgram`, version: `v1`, agent_backchannel_sensitivity: number, presence_check_max_count: integer, presence_check_interval_ms: integer, frustration_max_count: integer, restricted_terms: string[] } } **(required)** — Configures Deepgram's Think Live model. Think Live is off until this object is provided
 
 **AgentV1UpdateSpeak** — Send update speak to Deepgram's Voice Agent API
 
@@ -218,6 +223,16 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
   - `type` `InjectAgentMessage` **(required)** — Message type identifier for injecting an agent message
   - `message` string **(required)** — The statement that the agent should say
+  - `behavior` `default` | `queue` | `interrupt` (default: `default`) — Controls how the injection interacts with any in-progress user or agent turn.
+
+    * `default` — The agent speaks only if neither the user nor the agent is mid-turn. If a turn is in progress, the server replies with `InjectionRefused`.
+    * `queue` — The message is appended after any already-queued `ConversationText` without interrupting the current agent turn or think response. If nothing is queued, the message plays immediately.
+    * `interrupt` — The agent immediately speaks. If the agent was already speaking, it interrupts the current speech and replaces it with the new message. If the user is speaking, the agent interrupts with the new message, but the user's continued speech triggers `UserStartedSpeaking`, which quickly interrupts the agent.
+
+**AgentV1InjectDynamicAgentMessage** — Send a dynamic inject agent message to Deepgram's Voice Agent API, letting the Think Live model generate the filler line
+
+  - `type` `InjectAgentMessage` **(required)** — Message type identifier for injecting an agent message
+  - `is_dynamic` `true` **(required)** — Must be `true`. The Think Live model generates the line, so no `message` is sent
   - `behavior` `default` | `queue` | `interrupt` (default: `default`) — Controls how the injection interacts with any in-progress user or agent turn.
 
     * `default` — The agent speaks only if neither the user nor the agent is mid-turn. If a turn is in progress, the server replies with `InjectionRefused`.
@@ -268,6 +283,16 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
 
   - `type` `ThinkUpdated` **(required)** — Message type identifier for think update confirmation
 
+**AgentV1ThinkLiveUpdated** — Receive Think Live model update confirmation from Deepgram's Voice Agent API
+
+  - `type` `ThinkLiveUpdated` **(required)** — Message type identifier for Think Live model update confirmation
+
+**AgentV1FrustrationDetected** — Receive a frustration detection event from Deepgram's Voice Agent API
+
+  - `type` `FrustrationDetected` **(required)** — Message type identifier for frustration detection
+  - `count` integer **(required)** — Cumulative number of FrustrationDetected events in this session, starting at 1
+  - `escalated` boolean **(required)** — True once `count` reaches `agent.think_live.provider.frustration_max_count`
+
 **AgentV1ReceiveFunctionCallResponse** — Receive a function call response from the server after the server
   has executed a server-side function call internally. This occurs
   when functions are marked with `client_side: false`.
@@ -309,6 +334,7 @@ Build a conversational voice agent using Deepgram's Voice Agent WebSocket
   - `type` `ConversationText` **(required)** — Message type identifier for conversation text
   - `role` `user` | `assistant` **(required)** — Identifies who spoke the statement
   - `content` string **(required)** — The actual statement that was spoken
+  - `conversational_behavior` `default` | `backchannel` | `presence_check` | `filler` **(required)** — Annotates what kind of utterance the message represents: `default` (a standard turn), `backchannel` (a short acknowledgement while the user held the floor), `presence_check` (a prompt after extended silence), or `filler` (a line covering a wait on a function call or a dynamic InjectAgentMessage). Always sent; it is `default` for every message while Think Live is off
   - `languages_hinted` string[] — The language hints that were active at the time of the turn. Only present on user-role messages when the listen model is flux-general-multi.
   - `languages` string[] — Languages detected in the user's speech, sorted by word count (descending). Only present on user-role messages when the listen model is flux-general-multi.
 
