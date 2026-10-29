@@ -21,16 +21,21 @@ additional endpoint. `/v1/speak` is unchanged and remains supported.
 | Need | Family | Endpoint |
 |---|---|---|
 | A voice agent that streams LLM output and must survive barge-in | Flux TTS | `wss://api.deepgram.com/v2/speak` |
-| One-shot English audio: a file, an IVR prompt, a notification | Flux TTS batch | `POST https://api.deepgram.com/v2/speak` |
-| Spanish, German, French, Dutch, Italian, or Japanese, one-shot | Aura-2 | `POST https://api.deepgram.com/v1/speak` |
-| Spanish, German, French, Dutch, Italian, or Japanese, streamed with manual flush control | Aura-2 | `wss://api.deepgram.com/v1/speak` |
-| An existing `aura-{voice}-en` voice you must keep | Aura-1 | `/v1/speak` |
+| One-shot audio: a file, an IVR prompt, a notification | Flux TTS batch | `POST https://api.deepgram.com/v2/speak` |
+| One response that switches between English and Spanish | Aura-2 codeswitching voice | `/v1/speak` |
+| A non-English voice inside a Voice Agent | Aura-2 | `agent.speak.provider.version: "v1"` |
+| An existing `aura-2-*` or `aura-{voice}-en` voice you must keep | Aura-2 or Aura-1 | `/v1/speak` |
 
-Rule of thumb: Flux TTS is the recommended family for all new English builds: voice agents, customer service,
-IVR, and general-purpose synthesis. Pick Aura-2 when you need a language Flux TTS does not cover;
-Flux TTS voices are English only, and Aura-2 serves Spanish, German, French, Dutch, Italian,
-and Japanese. Aura-1 is the first-generation family, English only. Inside a Voice Agent, compressed
-or containerized output needs an Aura (`v1`) voice (see mistake 7).
+Rule of thumb: Flux TTS is the recommended family for every new build, in any of its 42 languages.
+Flux TTS voices speak English (American, British, Irish, Australian, Indian, Singaporean, and Filipino
+accents) and 41 other languages; the language is the suffix of the model string (`flux-anouk-nl` is
+Dutch). Text normalization (numbers, dates, abbreviations) covers English, German, Dutch, French,
+Hindi, Italian, Japanese, Portuguese, Russian, and Spanish; the other 32 languages are Early Access
+without it, so write numbers and dates out in words. The non-English voices are served on
+`api.deepgram.com`, `api.eu.deepgram.com`, and `api.in.deepgram.com`, not yet on `api.au.deepgram.com`.
+Aura-2 is the previous generation (English, Spanish, German, French, Dutch, Italian, and Japanese) and
+Aura-1 the first, English only. Inside a Voice Agent, non-English voices and compressed or
+containerized output need an Aura (`v1`) voice (see mistake 7).
 
 ## First request: Aura over REST
 
@@ -158,9 +163,9 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
   only transport that honors inline pauses.
 - SDKs: every Deepgram SDK ships a Flux TTS client. Python, JavaScript, and Java name it `speak.v2`;
   .NET ships `FluxSpeakRESTClient` and `FluxSpeakWebSocketClient`; Rust ships `speak::flux`; Go ships
-  `pkg/client/speak/v2` from v3.8.0. Only the Rust SDK skill documents Flux TTS; the JS, Python, Java,
-  Go, and .NET `text-to-speech` SDK skills cover `/v1/speak` only, so take `/v2/speak` message shapes
-  from this skill.
+  `pkg/client/speak/v2` from v3.8.0. Only the Rust SDK skill documents Flux TTS fully; the Python
+  skill has one Flux batch section (its `TextBuilder` helper), and the JS, Java, Go, and .NET
+  `text-to-speech` SDK skills cover `/v1/speak` only, so take `/v2/speak` message shapes from this skill.
 
 ## Voices
 
@@ -168,9 +173,11 @@ A session is a sequence of turns. Stream tokens in, then end the turn:
   twelve Aura-1 English voices named `aura-{voice}-en`. Five Spanish voices switch between English and
   Spanish within one request: `aura-2-aquila-es`, `aura-2-carina-es`, `aura-2-diana-es`,
   `aura-2-javier-es`, and `aura-2-selena-es`. Catalog: https://developers.deepgram.com/docs/tts-models
-- Flux TTS: `flux-{voice}-en`, English only, in American, British, Irish, Australian, Indian,
-  Singaporean, and Filipino accents. Featured voices include `flux-haley-en`, `flux-alexis-en`, and
-  `flux-kit-en`. Catalog: https://developers.deepgram.com/docs/flux-tts/voices
+- Flux TTS: `flux-{voice}-{language}` with a two-letter language suffix, in English and 41 other
+  languages. Regional variants share the suffix: Brazilian and European Portuguese are both `-pt`,
+  Flemish is `-nl`, Swiss German is `-de`, and Mandarin, Taiwanese Mandarin, and Cantonese are all
+  `-zh`, so pick the voice by name from the catalog. Featured English voices include `flux-haley-en`,
+  `flux-alexis-en`, and `flux-kit-en`. Catalog: https://developers.deepgram.com/docs/flux-tts/voices
 
 ## Pricing
 
@@ -207,6 +214,8 @@ quote figures from memory.
 7. Pointing a Voice Agent at api.deepgram.com. The Voice Agent API lives at `wss://agent.deepgram.com`
    and picks the TTS family from `agent.speak.provider.version`: `v2` for Flux TTS, `v1` for Aura.
    Omitting `agent.speak` gives Flux TTS with `flux-kit-en`.
+   - The agent accepts the English Flux TTS voices only; the other 41 languages are `/v2/speak`-only
+     for now, so a non-English agent voice is an Aura-2 (`v1`) voice or a third-party provider.
    - Speed and `expressivity` inside an agent go on `agent.speak.provider`; see
      https://developers.deepgram.com/docs/voice-agent-tts-controls.
    - An inline pause marker is not spoken and no error is returned, so text containing one goes
@@ -214,8 +223,9 @@ quote figures from memory.
    - A compressed encoding (`mp3`, `opus`, `flac`, `aac`) or a container such as `wav` in `audio.output`
      returns `INVALID_SETTINGS`, so configure an Aura (`v1`) voice for those formats, including when
      `agent.speak` is omitted.
-8. Using Aura `speed` on a German, French, Dutch, Italian, or Japanese voice. Aura-2 speed control
-   covers English and Spanish only.
+8. Using voice controls outside the languages that have them. Flux TTS `speed`, pause, and
+   pronunciation are documented for English voices only, and Aura-2 speed and pronunciation cover
+   English and Spanish only. On any other voice, pace with punctuation instead.
 
 ## Use a different skill when
 
@@ -231,7 +241,7 @@ quote figures from memory.
 - You want the docs inside your coding tool: `setup-mcp` skill.
 - You want idiomatic code in one language: the `deepgram-{js,python,java,go,rust,dotnet}-text-to-speech`
   skills from the SDK repositories (`npx skills add deepgram/deepgram-python-sdk`, and so on). Only the
-  Rust SDK skill documents Flux TTS; see the SDKs bullet in the Flux TTS section.
+  Rust SDK skill documents Flux TTS fully; see the SDKs bullet in the Flux TTS section.
 - You want Deepgram to run speech-to-text, the LLM, and TTS in one connection: `voice-agent` skill and
   `deepgram-{lang}-voice-agent`.
 - You are transcribing rather than synthesizing: `speech-to-text` skill. Note that "Flux" names both a

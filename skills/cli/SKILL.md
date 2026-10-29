@@ -11,7 +11,7 @@ description: >
 
 # Deepgram CLI (`deepctl`)
 
-One PyPI package, `deepctl`, installs three interchangeable binaries: `dg`, `deepctl`, and `deepgram`. All three report the same version and take the same arguments. This skill uses `dg`. The current release is 0.3.1, published 2026-09-29.
+One PyPI package, `deepctl`, installs three interchangeable binaries: `dg`, `deepctl`, and `deepgram`. All three report the same version and take the same arguments. This skill uses `dg`. The current release is 0.4.0, published 2026-10-20. It is a breaking release for browser-login users: credentials are now stored with an expiry, so a session created by `dg login` before 0.4.0 must run `dg login` once after upgrading.
 
 ## Decision rule
 
@@ -38,7 +38,7 @@ Upgrade the way you installed: `brew upgrade deepgram`, re-run `install.sh`, `pi
 
 The fully qualified formula name is what Homebrew 6 needs: a third-party formula loads only after it is trusted, and `brew install deepgram/tap/deepgram` trusts that one formula. The two-step `brew tap deepgram/tap && brew install deepgram` fails until a separate `brew trust` step.
 
-Homebrew lags PyPI. pip, uv, and pipx install 0.3.1, but `Formula/deepgram.rb` in the tap pins `deepctl-0.2.26`. That release already routes `flux-*` models to `/v2/listen` and `/v2/speak`, so Flux STT and Flux TTS work from the Homebrew install. What it lacks is what 0.3.0 changed: the `dg speak` default moved from Aura-2 to `flux-alexis-en`, `dg speak` gained `--speed` and `--expressivity`, `dg listen` gained `--redact` and `--numerals`, and the exit-code contract (0 success, 1 error, 2 interrupt) replaced exiting 0 on every outcome. Install from PyPI if you script against any of those.
+Homebrew lags PyPI. pip, uv, and pipx install 0.4.0, but `Formula/deepgram.rb` in the tap pins `deepctl-0.3.3`. That release has everything in this skill except the 0.4.0 credential change, so the Homebrew and PyPI installs behave the same for transcription, synthesis, and `dg skills`.
 
 `dg listen --mic` needs an extra on the PyPI installs: `pip install 'deepctl-cmd-listen[mic]'`. The Homebrew install brings the audio dependencies itself.
 
@@ -52,22 +52,25 @@ Three paths, in order of preference:
 
 The config file is `config.yaml` in the platform config directory: `~/Library/Application Support/deepctl/` on macOS and `~/.config/deepctl/` on Linux. It is written in cleartext at mode 0644.
 
-The env-var path is not guaranteed to stay off disk. Any command that persists configuration copies the key it read from the environment into that cleartext file. On 0.3.1 with the env var set and no config file, `dg whoami`, `dg listen`, `dg projects --list`, and `dg models` write nothing, but `dg update --check-only` creates it with `api_key:` in it, and `dg projects --set-default` does the same. Treat the file as a secret, and give CI an ephemeral `HOME`.
+The env-var path is not guaranteed to stay off disk. Any command that persists configuration copies the key it read from the environment into that cleartext file. On 0.4.0 with the env var set and no config file, `dg whoami`, `dg listen`, `dg projects --list`, and `dg models` write nothing, but `dg update --check-only` creates it with `api_key:` in it, and `dg projects --set-default` does the same. Treat the file as a secret, and give CI an ephemeral `HOME`.
 
-`dg whoami` shows status; add `-o json` for `authenticated`, `project_id`, `base_url`, and `key_source`, which names where the key came from, for example `DEEPGRAM_API_KEY (env)`.
+`dg whoami` shows status; add `-o json` for `authenticated`, `project_id`, `base_url`, `key_source`, which names where the key came from, for example `DEEPGRAM_API_KEY (env)`, and `credential_expires_at`.
 
 With no key, every API-backed command prints this, with your own config path in the parentheses:
 
 ```
 Error: DEEPGRAM_API_KEY is not set in the configuration file
 (.../deepctl/config.yaml) or environment variable.
+Run deepctl login to configure the CLI with your Deepgram account.
 ```
+
+It exits 1.
 
 `dg keys`, `dg usage`, `dg billing`, `dg members`, and `dg requests` also need a project, or they fail with `ERROR: Project ID is required for this command. Set DEEPGRAM_PROJECT_ID or configure via profile.` Fix that with `dg projects --set-default <project_id>` or the env var.
 
 ## Command surface
 
-23 top-level commands in 0.3.1. `dg transcribe` also survives as a hidden, deprecated alias of `dg listen`.
+23 top-level commands in 0.4.0. `dg transcribe` also survives as a hidden, deprecated alias of `dg listen`.
 
 | Group | Commands |
 |---|---|
@@ -101,6 +104,8 @@ ffmpeg -i call.wav -f s16le -ar 16000 -ac 1 - \
 dg speak "Deploy finished." -o notice.wav
 dg speak "Deploy finished." -m aura-2-asteria-en -o notice.mp3   # Aura on Speak v1 REST, for MP3
 dg speak --file script.txt --speed 0.9 -o slow.wav               # --speed and --expressivity are flux-* only
+dg speak "Deploy finished." --play                               # play through the speakers
+dg speak --list-voices                                           # list the voices
 
 # Text intelligence
 dg -o table read --sentiment --topics --summarize --file feedback.txt
@@ -119,7 +124,7 @@ dg api /v1/projects                                  # two JSON documents on std
 dg api /v1/projects --jq '.projects[0].project_id'   # shells out to a local jq
 ```
 
-`dg -o json listen` returns the Deepgram response verbatim, with the same `metadata` and `results.channels[].alternatives[]` shape as `POST /v1/listen`. Script against that, not against the pretty output. On 0.3.1 a URL source first prints `Checking URL accessibility...` on stdout, so `dg -o json listen https://dpgr.am/spacewalk.wav | jq .` fails on that line while a local file parses cleanly; download the file first, or drop the first line with `tail -n +2`. On `main` the line is written to stderr, so the release after 0.3.1 keeps stdout to the JSON body.
+`dg -o json listen` returns the Deepgram response verbatim, with the same `metadata` and `results.channels[].alternatives[]` shape as `POST /v1/listen`. Script against that, not against the pretty output. For a URL source the `Checking URL accessibility...` line goes to stderr (since 0.3.2), so stdout holds only the JSON body and `dg -o json listen https://dpgr.am/spacewalk.wav | jq .` parses.
 
 `dg api` writes two JSON documents to stdout: the response body, pretty-printed, then a result envelope with `status`, `message`, `method`, `url`, `status_code`, `response_body`, and `elapsed_ms`. `-o json` changes nothing and `--raw` only compacts the body, so a single-document parser such as Python's `json.load` fails with `Extra data`, while `jq` reads both documents and runs the filter on each. `--jq '<filter>'` prints the filter result and then the envelope, and it needs a `jq` binary on `PATH`: without one it prints a `jq Required` panel reading `jq is not installed` and fails. A non-JSON body, such as plain text, is printed as text, and an HTTP error status still prints the body and sets `"status": "error"` in the envelope.
 
@@ -127,13 +132,13 @@ dg api /v1/projects --jq '.projects[0].project_id'   # shells out to a local jq
 
 `dg skills status` lists eight assistants it can detect: Claude Code, OpenAI Codex, Gemini CLI, Amazon Q Developer, Aider, OpenCode, Cursor, and Cline. `dg skills install --all` and `dg skills setup` write files for the detected ones; `dg skills list`, `update`, and `remove` manage them. State lives in `~/.deepctl/skills/skills.json`.
 
-It is not a substitute for `npx skills add deepgram/skills`. On 0.3.1:
+Since 0.3.3 it installs every skill listed in this repository's `.claude-plugin/marketplace.json`, as skill folders, from a tarball of one pinned release: 0.4.0 pins `deepgram-skills-v1.7.0` (commit `0fc13fa`, checked by SHA-256), and reports `Installed 42 skill folders for 3 tools from deepgram/skills deepgram-skills-v1.7.0` for 14 skills across three detected tools.
 
-- It downloads four hardcoded skills from this repository, `api`, `docs`, `setup-mcp`, and `starters`, from `raw.githubusercontent.com/deepgram/skills/main`. Every other skill in the repository, including the capability on-ramps, is never fetched, and the list does not grow when the repository adds one.
-- For Claude Code it writes them to `~/.claude/commands/deepgram/*.md`, the slash-command directory at user scope, not `~/.claude/skills/`, and keeps the `name:` and `description:` skill frontmatter, which is not the slash-command schema.
-- For Codex, Gemini CLI, and OpenCode it concatenates the same four files into one blob at `~/.codex/instructions.md`, `~/.gemini/GEMINI.md`, or `~/.opencode/agents.md`, between `<!-- BEGIN deepctl CLI Reference (auto-generated by deepctl) -->` and `<!-- END deepctl CLI Reference -->` markers. Cursor gets the same blob as `~/.cursor/rules/deepctl.mdc`, overwritten whole with no markers. The marker text says "CLI Reference", but the blob holds no command reference.
+- Destinations: Claude Code `~/.claude/skills/<name>/`, Codex `~/.agents/skills`, Gemini CLI `~/.gemini/skills`, OpenCode `~/.config/opencode/skills`, Cursor `~/.cursor/skills`, and Cline `~/.cline/skills`. Amazon Q and Aider get a hint only, no files.
+- It installs and removes only the folders it owns, and cleans up the slash-command files and `GEMINI.md`, `instructions.md`, and `agents.md` sections that 0.3.x wrote, but only where it can prove it wrote them.
+- `dg skills install --ref <tag-or-commit>` (or `DEEPCTL_SKILLS_REF`) installs a different release of this repository; `--cli` limits the install to named tools. `dg login` offers to install skills too.
 
-Use `npx skills add deepgram/skills` to get the full, current skill set. Use `dg skills` to check what a machine already has, or to seed a tool this repository's installer does not support.
+The pin moves only with a deepctl release, so `dg skills` trails this repository by at least one release. Use `npx skills add deepgram/skills`, or `dg skills install --ref <newer tag>`, for skills newer than the pin.
 
 ## `dg init`
 
@@ -145,7 +150,7 @@ dg init --list --search fastapi
 dg init node-transcription --dir ./my-app --no-install --no-start
 ```
 
-`-o json` does not clean up `dg init --list`: on 0.3.1 it prints the Rich table, a `<n> template(s)` count line, and then the JSON array of templates on one stdout, so the whole output does not parse. Take the array from the first line that starts with `[`.
+`-o json` does not clean up `dg init --list`: on 0.4.0 it prints the Rich table, a `<n> template(s)` count line, and then the JSON array of templates on one stdout, so the whole output does not parse. Take the array from the first line that starts with `[`.
 
 It does more than `git clone`: it leaves `.git` intact so you can add your own remote, and it writes your key into the clone's `.env` as `DEEPGRAM_API_KEY=`. That is a live secret on disk, so check `.gitignore` before committing. It also refuses to run until `git`, `node`, `npm`, `make`, and `curl` are all present, even with `--no-install`. The human output is a `Missing required tools:` checklist that marks each absent tool with `✗` and a download link; under `-o json` the error message reads `Missing tools: git, node, npm, make, curl`.
 
@@ -153,24 +158,24 @@ Three gallery caveats: the gallery carries no `flux` or `flux-tts` templates, so
 
 ## `dg mcp`
 
-`dg mcp` runs a stdio MCP proxy, with `--transport sse --port 8000` for SSE. On 0.3.1 its `initialize` response names the server `deepgram-mcp` 0.1.10, while the latest `deepgram-mcp` package on PyPI is 0.1.1 and the command package installed with it is `deepctl-cmd-mcp` 0.1.15, so that number is not a package version to upgrade against. It exposes exactly one tool, `search_deepgram_knowledge_sources`, a semantic search over Deepgram's documentation. It exposes no transcription, synthesis, or project tools, so call `dg` directly for those. Use the `setup-mcp` skill for editor wiring.
+`dg mcp` runs a stdio MCP proxy, with `--transport sse --port 8000` for SSE. On 0.4.0 its `initialize` response names the server `deepgram-mcp` 0.1.10, while the latest `deepgram-mcp` package on PyPI is 0.1.1 and the command package installed with it is `deepctl-cmd-mcp` 0.1.15, so that number is not a package version to upgrade against. It exposes exactly one tool, `search_deepgram_knowledge_sources`, a semantic search over Deepgram's documentation. It exposes no transcription, synthesis, or project tools, so call `dg` directly for those. Use the `setup-mcp` skill for editor wiring.
 
 ## Regional and custom hosts
 
 The global `--base-url` flag and the `DEEPGRAM_BASE_URL` env var both retarget the host, and REST and WebSocket endpoints are derived from whichever you set. `dg whoami` echoes the value back. Use them for self-hosted and staging deployments.
 
-The regional hosts do not work on 0.3.1. Every command first checks credentials against `{base_url}/v1/projects`, and the management API is not served regionally, so `dg --base-url https://api.eu.deepgram.com listen file.wav` fails with `Error: Unexpected error: HTTP 404` while the same transcription request succeeds with curl against `api.eu.deepgram.com/v1/listen`. Use curl or an SDK for `api.eu.deepgram.com`, `api.au.deepgram.com`, and `api.in.deepgram.com`.
+The regional hosts do not work on 0.4.0. Every command first checks credentials against `{base_url}/v1/projects`, and the management API is not served regionally, so `dg --base-url https://api.eu.deepgram.com listen file.wav` fails with `Error: Unexpected error: HTTP 404` while the same transcription request succeeds with curl against `api.eu.deepgram.com/v1/listen`. Use curl or an SDK for `api.eu.deepgram.com`, `api.au.deepgram.com`, and `api.in.deepgram.com`.
 
 ## Common mistakes
 
 1. Trusting the exit code. 0.3.0 enforces exit codes, where earlier versions always exited 0: now 0 is success, 1 is an error or bad usage, and 2 is an interrupt. The contract has holes. `dg listen --mic` and `dg mcp` swallow Ctrl-C and exit 0, and `dg listen -` on Ctrl-C exits 134 after `Fatal Python error: _enter_buffered_busy: could not acquire lock for <_io.BufferedReader name='<stdin>'> at interpreter shutdown`. API errors, missing files, and a missing API key do exit 1. In CI, check `"status"` in `-o json` as well as `$?`.
-2. Expecting caption files from `--srt` or `--webvtt`. On 0.3.1 `dg listen file.wav --srt --save-to out.srt` writes the plain transcript with no cue numbers and no timestamps, for a local file or a URL, under `-o table` or `-o json`. Use `dg -o json listen` and build cues from the word timestamps, or call the API.
-3. Running `dg config set …`. Every help screen ends with `Disable: dg config set telemetry.enabled false`, but there is no `config` command, and the attempt returns `Error: No such command 'config'`. Set `DEEPCTL_TELEMETRY_DISABLED=1` instead, after which the footer reads `Telemetry is off.`
+2. Expecting caption files from `--srt` or `--webvtt`. On 0.3.1 (and `deepctl-cmd-listen` is unchanged through 0.4.0) `dg listen file.wav --srt --save-to out.srt` writes the plain transcript with no cue numbers and no timestamps, for a local file or a URL, under `-o table` or `-o json`. Use `dg -o json listen` and build cues from the word timestamps, or call the API.
+3. Running `dg config set …`. There is no `config` command; the attempt returns `Error: No such command 'config'` and exits 1. To turn telemetry off, which is on by default and sends anonymous error reports, set `DEEPCTL_TELEMETRY_DISABLED=1` or `telemetry.enabled: false` in `config.yaml`, as the help footer says.
 4. Putting a global flag after the subcommand. `dg listen --base-url <url> file.wav` returns `Error: No such option '--base-url'` plus a hint that it is a global option. Write `dg --base-url <url> listen file.wav`. The same holds for `--api-key`, `-p`, `-c`, and `--timing`; `-o`, `-q`, and `-v` work in either position, except on `dg speak`, where `-o` after the subcommand is the output file.
 5. Treating `dg models` as the model catalog. It returns 553 rows, 942 with `--include-outdated`. Each row's `name` is the bare voice, `asteria`, and `canonical_name` carries the full identifier, `aura-2-asteria-en`, so script against `canonical_name`. Rows carry a `deprecated` flag, and the list holds no Flux STT or Flux TTS models at all. Take model names from the `speech-to-text` and `text-to-speech` skills.
 6. Pointing Flux STT at a file. `dg listen file.wav -m flux-general-en` returns `Flux STT (flux-general-en) is streaming-only and cannot transcribe a file or URL.` Pipe stdin or use `--mic`, since Flux STT has no prerecorded mode.
 7. Acting on `Warning: API key format doesn't match expected pattern`. A valid 40-character key triggers it and then verifies fine.
-8. Expecting `dg login --profile <name>` to keep the key out of `config.yaml` without a keyring. On 0.3.1 with no keyring backend, `dg login --api-key "$KEY" --profile staging -f` writes the `staging` profile to `config.yaml` in cleartext, sets `active_profile: staging`, and writes the same key into the `default` profile as well; `dg profiles --list` shows both with the same masked key. The whole file is the secret, not one profile in it.
+8. Expecting `dg login --profile <name>` to keep the key out of `config.yaml` without a keyring. On 0.3.1 (not yet re-checked on 0.4.0, which changed credential storage) with no keyring backend, `dg login --api-key "$KEY" --profile staging -f` writes the `staging` profile to `config.yaml` in cleartext, sets `active_profile: staging`, and writes the same key into the `default` profile as well; `dg profiles --list` shows both with the same masked key. The whole file is the secret, not one profile in it.
 
 ## Use a different skill when
 
@@ -196,5 +201,7 @@ The regional hosts do not work on 0.3.1. Every command first checks credentials 
 - Agentic tools overview: https://developers.deepgram.com/developer-tools/agentic-tools
 - Source and releases: https://github.com/deepgram/cli
 - 0.3.0 release notes (speak default, exit codes): https://github.com/deepgram/cli/releases/tag/v0.3.0
+- 0.3.3 release notes (pinned skills bundle, owned-folder installs): https://github.com/deepgram/cli/releases/tag/v0.3.3
+- 0.4.0 release notes (finite credentials, re-login): https://github.com/deepgram/cli/releases/tag/v0.4.0
 - Package: https://pypi.org/project/deepctl/
 - Homebrew tap: https://github.com/deepgram/homebrew-tap

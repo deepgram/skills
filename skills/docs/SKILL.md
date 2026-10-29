@@ -35,7 +35,7 @@ Docs:
 Convert text into natural-sounding speech. Deepgram ships two TTS model families on separate endpoints — the voices do not overlap.
 
 - **Aura** (`/v1/speak`) — the broadest voice catalog (English, Spanish, German, Dutch, French, Italian, Japanese) and compressed/containerized output. Use for one-shot synthesis and any non-English voice.
-- **Flux TTS** (`/v2/speak`) — streaming-first, voice-agent-first synthesis. Turn-based lifecycle, barge-in with spoken-text feedback, and prosody that carries across turns. English at launch.
+- **Flux TTS** (`/v2/speak`) — streaming-first, voice-agent-first synthesis. Turn-based lifecycle, barge-in with spoken-text feedback, and prosody that carries across turns. English plus 41 languages, 32 of them Early Access.
 
 Docs:
 - [Text-to-Speech Docs (Aura)](https://developers.deepgram.com/docs/tts-rest)
