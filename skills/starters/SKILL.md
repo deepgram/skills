@@ -35,7 +35,7 @@ supports.
 
 **Nova vs Flux STT for speech-to-text:** use `transcription` or `live-transcription` (Nova, `/v1/listen`) for general-purpose transcription, captions, and batch workloads. Use `flux` (Flux STT, `/v2/listen`) when you need built-in turn detection for conversational audio. See the `api` skill for a full comparison.
 
-**Aura vs Flux TTS for text-to-speech:** use `text-to-speech` or `live-text-to-speech` (Aura, `/v1/speak`) for one-shot synthesis, non-English voices, and compressed audio. Use `flux-tts` (Flux TTS, `/v2/speak`) when you're streaming LLM output to a speaker and need a turn lifecycle and barge-in. See the `api` skill for a full comparison.
+**Aura vs Flux TTS for text-to-speech:** use `text-to-speech` or `live-text-to-speech` (Aura, `/v1/speak`) for one-shot synthesis with an Aura voice and compressed audio. Flux TTS now covers 41 languages besides English as well, so language alone is no longer a reason to pick Aura. Use `flux-tts` (Flux TTS, `/v2/speak`) when you're streaming LLM output to a speaker and need a turn lifecycle and barge-in. See the `api` skill for a full comparison.
 
 **Flux TTS starters exist for `node`, `flask`, `fastapi`, `django`, and `java` only** — these are the five apps Deepgram officially publishes at [Flux TTS template apps](https://developers.deepgram.com/docs/flux-tts/template-apps). There is no `flux-tts` starter for the other frameworks; don't construct those URLs. For an unsupported framework, start from the `api` skill's Flux TTS section and the SDK skills instead.
 

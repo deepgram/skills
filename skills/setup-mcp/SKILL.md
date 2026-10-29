@@ -91,9 +91,12 @@ script. `dg update --check-only` reports whether a newer release exists; on a pi
 The fully qualified Homebrew name matters: Homebrew 6 loads a third-party formula only after it
 is trusted, and `brew install deepgram/tap/deepgram` trusts that one formula, where
 `brew tap deepgram/tap && brew install deepgram` fails until a separate `brew trust` step. The
-tap formula pins `deepctl-0.2.26`; pip, uv, and pipx install 0.3.1.
+tap formula pins `deepctl-0.3.3`; pip, uv, and pipx install 0.4.0.
 
 ### A2. Authenticate — required
+
+Upgrading to 0.4.0 from an earlier browser login (`dg login` without `--api-key`)? Run `dg login`
+once more; 0.4.0 stores credentials with an expiry and does not carry the old session over.
 
 `dg mcp` will not start without credentials. Do this before configuring any editor:
 

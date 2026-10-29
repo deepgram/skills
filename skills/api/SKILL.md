@@ -165,9 +165,9 @@ Both TTS families are actively maintained. `/v2/speak` is a **new endpoint, not 
 | | Aura (`/v1/speak`) | Flux TTS (`/v2/speak`) |
 |---|---|---|
 | Endpoint | `/v1/speak` | `/v2/speak` |
-| Models | `aura-2-*` (en, es, de, nl, fr, it, ja), `aura-*` | `flux-{voice}-{language}`, e.g. `flux-alexis-en` — English at launch |
+| Models | `aura-2-*` (en, es, de, nl, fr, it, ja), `aura-*` | `flux-{voice}-{language}`, e.g. `flux-alexis-en` — English plus 41 languages; 32 of them Early Access without text normalization, none yet on `api.au`, and only English inside a Voice Agent |
 | `model` param | Optional (defaults to `aura-asteria-en`) | **Required**; an `aura-*` string is rejected |
-| Best for | Broadest voice catalog, multilingual, compressed audio, one-shot synthesis | Voice agents — streaming LLM output, barge-in, multi-turn conversations |
+| Best for | Existing Aura integrations, English–Spanish codeswitching voices, non-English voices inside a Voice Agent, compressed audio inside a Voice Agent | Voice agents — streaming LLM output, barge-in, multi-turn conversations |
 | Mental model | Text buffer → audio stream | Streaming-first, turn-based conversation |
 | Turn lifecycle | None | `SpeechStarted` → audio → `Flushed` → `SpeechMetadata` per turn (server-assigned `speech_id`) |
 | Cross-turn context | None (reconnect to reset) | Prosody persists across turns automatically — no API surface |
@@ -182,7 +182,7 @@ Both TTS families are actively maintained. `/v2/speak` is a **new endpoint, not 
 | Voice Agent `provider.version` | `v1` (the default when a provider is specified) | `v2` (required) |
 
 **Pick Aura (`/v1/speak`) when:**
-- You need a language other than English, or a specific Aura voice
+- You need a non-English voice inside a Voice Agent (the agent takes English Flux TTS voices only), an English–Spanish codeswitching voice, or a specific Aura voice
 - You need compressed output (`mp3`, `opus`, `flac`, `aac`) inside a Voice Agent, where Flux TTS returns `INVALID_SETTINGS`; on batch REST both families serve those encodings
 - You're already on Aura and nothing in Flux TTS is pulling you over — v1 is unchanged
 
@@ -257,7 +257,7 @@ Migrating from Aura? See the official [Migrating from Aura to Flux TTS](https://
 
 ### Flux STT model (`/v2/listen`)
 
-16. **Use `/v2/listen` and a `flux-general-*` model.** Two are served: `flux-general-en` (English) and `flux-general-multi` (multilingual, and the only model that accepts `language_hint` / `language_hints`). `/v1/listen` does not support Flux STT, and `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
+16. **Use `/v2/listen` and a `flux-general-*` model.** Two are served: `flux-general-en` (English) and `flux-general-multi` (multilingual, and the only `/v2/listen` model that accepts `language_hint` / `language_hints`; on `/v1/listen`, `language_hint` biases Nova-3 `language=multi`). `/v1/listen` does not support Flux STT, and `model=flux` alone is not a valid value. Do not include `language` or `encoding` params for containerized audio.
 
 17. **Use `Configure` to update EOT thresholds, keyterms, language hints, and `numerals` mid-session.** Unlike `/v1/listen`, Flux STT supports live reconfiguration after connection, so there is no need to reconnect to change turn detection sensitivity, boost new keyterms, re-bias language detection (`language_hints`, `flux-general-multi` only), or switch `numerals` on for a PIN or order number:
     ```json

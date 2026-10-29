@@ -77,7 +77,7 @@ Field notes, from the configure and model pages [3][6][7][8]:
   - Bring your own LLM by keeping `type: open_ai` and setting `endpoint.url` to any OpenAI Chat Completions-compatible URL, with `endpoint.headers` for its auth. [6]
   - Pass an array of providers to get an ordered fallback chain: a request that fails or times out produces a `THINK_REQUEST_FAILED` warning and goes to the next provider, every turn starts again from the first, and when all of them fail the session gets a `FAILED_TO_THINK` error and the turn produces no reply. Managed-LLM prompts are limited to 25,000 characters; a longer prompt is truncated with a `PROMPT_TOO_LONG` warning, not rejected. [6][13]
   - `nvidia`: send the model string that `GET /v1/agent/settings/think/models` (the `curl` under First request) returns, currently `nvidia/nemotron-3.5-lightning-30b-a3b`.
-- `speak`: `"version": "v2"` selects Flux TTS (`flux-{voice}-{language}`); `v1`, the default when you name a provider, selects Aura (`aura-2-thalia-en`). Omit `agent.speak` entirely and you get Flux TTS with `flux-kit-en`. [8][3]
+- `speak`: `"version": "v2"` selects Flux TTS (`flux-{voice}-{language}`); `v1`, the default when you name a provider, selects Aura (`aura-2-thalia-en`). Omit `agent.speak` entirely and you get Flux TTS with `flux-kit-en`. The agent accepts the English Flux TTS voices only; the other Flux TTS languages are `/v2/speak`-only for now, so a non-English agent voice is Aura-2 (`v1`) or a third-party provider. [8][3]
   - Flux TTS streams raw audio only: `encoding` must be `linear16`, `mulaw`, or `alaw` and `container` must be `none`. The full `audio.output.encoding` enum is `linear16`, `mulaw`, `alaw`, `mp3`, `opus`, `flac`, or `aac`, `container` is `none`, `wav`, or `ogg`, and `audio.output.bitrate` is bits per second; the compressed encodings, a container such as `wav`, and `bitrate` are Aura only, and Flux TTS answers any of them with `INVALID_SETTINGS`. [38][3]
   - `provider.speed` (default `1.0`) is `0.5` to `1.5` in `0.05` steps on Flux TTS and any value from `0.7` to `1.5` on Aura; a value the family does not accept ends the session with `FAILED_TO_SPEAK`. `provider.expressivity` (whole numbers `-2` to `2`, default `0`) is Flux TTS (`v2`) only and fixed for the session; it is beta and `0` is the only value validated for production. [34]
   - Third-party TTS (`open_ai`, `eleven_labs`, `cartesia`, `aws_polly`) takes an `endpoint` with `url` and `headers`, and `wss` URLs are accepted for Eleven Labs only; `aws_polly` also requires `credentials` (`type` `sts` or `iam`, with `region`, `access_key_id`, `secret_access_key`, and `session_token` for STS). Deepgram-managed Cartesia (`type: cartesia` with no `endpoint`) is the exception. [8][12]
@@ -85,7 +85,7 @@ Field notes, from the configure and model pages [3][6][7][8]:
   - `speak` also takes an array of providers as an ordered fallback chain: a failed request produces a `SPEAK_REQUEST_FAILED` warning and goes to the next provider, and when all of them fail the session ends with `FAILED_TO_SPEAK`. [8][12]
 - `agent.context.messages` replays earlier turns as `{"type":"History","role":"user","content":"..."}` or `{"type":"History","function_calls":[{"id":"...","name":"...","client_side":false,"arguments":"...","response":"..."}]}` so a new session continues an old one. [39] While `Settings.flags.history` is `true` (the default) the server sends `History` messages in the same two shapes; set it to `false` to turn them off. [3][35]
 - Other knobs: `think.provider.reasoning_mode` accepts `low`, `medium`, or `high` on OpenAI reasoning models such as `gpt-5` and `gpt-5-mini` [3]. `think.context_length` (`max` or a character count; custom `think.endpoint` only) and the top-level `tags`, `experimental`, and `mip_opt_out` have their ranges in `references/agent.md` in the `api` skill. [12]
-- Conversational Mode (`agent.think_conversational.provider`: backchanneling, presence checks, frustration detection) is invite-only Early Access; a `Settings` message that names it from an unenrolled project is rejected with `UNPARSABLE_CLIENT_MESSAGE`. [36]
+- `think_live`: a second, Deepgram-run model beside the reasoning LLM, for backchannels, presence checks, frustration detection, and filler. It is invite-only Early Access and was called Conversational Mode (`think_conversational`) before; see Think Live below. [36]
 
 ## Reusable agent configurations
 
@@ -102,10 +102,11 @@ There is no separate logging API. For per-session observability, persist every n
 | server | `Welcome` | Send `Settings`. [5] |
 | server | `SettingsApplied` | Start streaming audio. [5] |
 | server | `UserStartedSpeaking` | Barge-in. Stop playback now and discard every buffered agent audio frame. [11] |
-| server | `ConversationText` (`role` is `user` or `assistant`, `content`; with `flux-general-multi`, user-role messages also carry `languages_hinted` and `languages`, BCP-47 arrays, the second sorted by word count descending) | Show the transcript. [11] |
+| server | `ConversationText` (`role` is `user` or `assistant`, `content`, and `conversational_behavior`, which is `default` unless Think Live produced a `backchannel`, `presence_check`, or `filler` line; with `flux-general-multi`, user-role messages also carry `languages_hinted` and `languages`, BCP-47 arrays, the second sorted by word count descending) | Show the transcript. [11] |
 | server | `AgentThinking` (`content`) | Optional status. The LLM is working, possibly choosing a function. [11] |
 | server | `FunctionCallRequest` | See the next section. [9] |
 | server | `FunctionCallCancelled` (`functions[]` with `id`, `name`) | The user started speaking again. Stop work on each `id` and do not send a `FunctionCallResponse` for it; a late one is dropped. [33] |
+| server | `FrustrationDetected` (`count`, `escalated`) | Think Live only. Run your escalation workflow when `escalated` is `true`; Deepgram does not transfer the call. [36] |
 | server | `AgentStartedSpeaking` | The reply's audio is starting. [12] |
 | server | `LatencyReport` | Per-turn latency breakdown, sent automatically after each turn: `stt_latency`, `ttt_token_latency`, `ttt_text_latency`, `ttt_tool_latency`, `ttt_thinking_latency`, `tts_latency`, `total_latency`. All are floats in seconds and each is optional, so read them defensively. [31] |
 | server | binary frames | Agent audio. Queue it for playback. [5] |
@@ -119,6 +120,7 @@ Mid-call updates, each acknowledged by a matching `*Updated` event [16]:
 - `UpdateSpeak` `{"type":"UpdateSpeak","speak":{"provider":{...}}}` changes the voice. With Flux TTS the new voice starts on the next turn. Ack: `SpeakUpdated`. [16]
 - `UpdateListen` changes the listen `model` and `language` mid-session and, on a Flux STT (`v2`) provider, the end-of-turn thresholds and language hints; keyterms update mid-session on Flux STT models only. It is a partial update, with one exception: `language_hints` is cleared when omitted, so re-send it on every `UpdateListen` that should keep language biasing. Ack: `ListenUpdated`. [16][17]
 - `UpdateThink` replaces the whole think block, functions included. Ack: `ThinkUpdated`. [16]
+- `UpdateThink_Live` `{"type":"UpdateThink_Live","think_live":{"provider":{...}}}` replaces the whole `think_live.provider` block; omitted parameters fall back to their defaults, not to the previous values. Ack: `ThinkLiveUpdated`. [36][16]
 - `ForceEndTurn` ends the user's turn now and needs a Flux STT (`v2`) listen provider: with any other listen provider the server sends a `FORCE_END_TURN_UNSUPPORTED` warning and the turn does not end, and with no turn in progress it is ignored silently. [17]
 - `InjectAgentMessage` `{"type":"InjectAgentMessage","message":"...","behavior":"default"}` makes the agent speak. `default` and `queue` are refused with `InjectionRefused` while the user is speaking; `queue` waits behind the agent's own turn; only `interrupt` is never refused. `InjectUserMessage` `{"type":"InjectUserMessage","content":"..."}` sends typed user text. [18][5]
 
@@ -133,7 +135,28 @@ The server sends one `FunctionCallRequest` with a `functions` array. Each item h
 
 Calls dispatch speculatively. The agent starts thinking as soon as speech-to-text is moderately confident the user has stopped, and a function call goes out the moment the LLM emits it, before the turn is confirmed. If the user keeps talking, the turn resumes and the server sends `FunctionCallCancelled` for every call you already received. Set `defer_until_eot: true` on a function whose side effect cannot be undone (ending a call, booking, charging a card): a deferred call is held until the turn is confirmed and discarded if the turn resumes, and deferring one function does not delay the others. An `endpoint` function that already reached your server is not rolled back, which is the reason to defer rather than rely on cancellation. [33]
 
-During a slow call, send `InjectAgentMessage` with `behavior: "queue"` ("One moment while I look that up"). [18] A call to a name you did not define ends the session with `NON_EXISTENT_FUNCTION_CALLED`. [13]
+During a slow call, send `InjectAgentMessage` with `behavior: "queue"` ("One moment while I look that up"), or with Think Live let the Think Live model word the filler (next section). [18][36] A call to a name you did not define ends the session with `NON_EXISTENT_FUNCTION_CALLED`. [13]
+
+## Think Live (Early Access)
+
+Think Live runs a Deepgram model next to your reasoning LLM: the LLM still answers and calls functions, and the Think Live model backchannels while the user talks, prompts after a long silence, flags frustration, and covers waits with filler. It is invite-only Early Access on the normal `/v1/agent/converse` endpoint; from an unenrolled project a `Settings` message containing `think_live` is rejected with `UNPARSABLE_CLIENT_MESSAGE`. Deepgram says the surface will change during Early Access, so keep production traffic off it. [36]
+
+Turn it on by adding `agent.think_live.provider` with `type: "deepgram"` and `version: "v1"`; no other provider type is accepted, and Think Live is off while the block is absent. `agent.think` stays the reasoning LLM (`agent.think_reasoning` is an accepted alias; sending both is an error). Parameters [36]:
+
+- `agent_backchannel_sensitivity`: `0` to `1`, default `0.73`; `0` disables agent backchannels.
+- `presence_check_max_count`: default `3`, `0` disables. `presence_check_interval_ms`: `1` to `60000`, default `4500`, but the first check never fires before `3000`.
+- `frustration_max_count`: how many `FrustrationDetected` events before `escalated` turns `true`; `0` stops the event entirely.
+- `restricted_terms`: words the Think Live model will not say, default `["human", "transfer"]`, so it never volunteers a handoff your agent cannot make. It does not constrain the reasoning LLM.
+
+Filler during function calls is per function, on `agent.think.functions[]` [36]:
+
+- `initial_agent_filler` (default `false`): one line once the call is dispatched and the turn is confirmed, skipped if the LLM already announced the call or the response arrives first.
+- `agent_filler_max_count` (default `0`) and `agent_filler_interval_ms` (default `5000`, `1000` to `60000`): further lines, each after that much silence since the agent last spoke. Calls in one turn share the schedule of the first call that asked for filler.
+- Either filler field set without `agent.think_live`, or an interval out of range with a nonzero count, rejects `Settings` with `INVALID_SETTINGS` and closes the session.
+
+Filler on demand: `{"type":"InjectAgentMessage","behavior":"queue","is_dynamic":true}` with no `message`. Sending `message` with `is_dynamic: true`, or neither, is `UNPARSABLE_CLIENT_MESSAGE` and closes the session. Without `think_live`, when the line cannot be generated, when a second request supersedes the first, or when the user starts speaking first, nothing is spoken and a `DYNAMIC_FILLER_UNAVAILABLE` warning arrives. [36][18]
+
+Render or suppress `ConversationText` messages whose `conversational_behavior` is not `default`; they are scaffolding, not content. Filler lines are spoken through your `speak` provider and enter the conversation history. [36][11]
 
 ## Telephony
 
@@ -164,8 +187,8 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 - You want a minimal snippet for one feature (`connect`, `custom-llm`, `custom-tts`, `function-calling`): `recipes` skill. [29]
 - You are wiring a third-party platform (Twilio, LiveKit, Pipecat, Vonage, SignalWire, CrewAI, OpenAI Agents SDK): `examples` skill. [21]
 - The agent runs in a browser: `browser-agent` skill, for the four Browser Agent SDK packages on npm (`@deepgram/agents`, `@deepgram/react`, `@deepgram/ui`, `@deepgram/agents-widget`). They wrap the same socket this skill documents, including the `Sec-WebSocket-Protocol` token handshake above.
-- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`. [30] The SDKs carry `FunctionCallCancelled` and `defer_until_eot` from JS 5.12.0, Python 7.10.0, and Java 0.10.1, but their voice-agent skills do not describe them, so take the message shapes from this skill. Go 3.8.0 and .NET 7.1.1 have no typed `FunctionCallCancelled` or `defer_until_eot`: parse the raw message and send the field as plain JSON. The raw protocol above works in any language. [30][42]
-- You want the reusable-configuration and variable REST clients from an SDK: `client.voiceAgent` (JS), `client.voice_agent` (Python), `client.voiceAgent()` (Java), and the `AgentManage` client (.NET); Go has them only on `main` after 3.8.0, and Rust has none. [42]
+- You want language-idiomatic code: `deepgram-js-voice-agent`, `deepgram-python-voice-agent`, `deepgram-java-voice-agent`, `deepgram-rust-voice-agent`, `deepgram-dotnet-voice-agent`, or `deepgram-go-voice-agent`. The Go SDK v3 ships an agent WebSocket client under `pkg/client/agent/v1/websocket`. [30] All six SDKs type `FunctionCallCancelled` and `defer_until_eot` (JS from 5.12.0, Python from 7.10.0, Java from 0.10.1, and Go 3.10.0, Rust 0.14.0, and .NET 7.2.0 at the latest), but none of their voice-agent skills mention `defer_until_eot`, and only the Rust and .NET skills mention `FunctionCallCancelled`, so take the message shapes from this skill. Think Live (`think_live`, `UpdateThink_Live`, `FrustrationDetected`, dynamic `InjectAgentMessage`, `conversational_behavior`) and the filler fields are typed in JS 5.17.0, Python 7.16.0, and Java 0.11.3 only, and no SDK voice-agent skill covers them yet; on Go, Rust, and .NET send them as raw JSON. The raw protocol above works in any language. [30][42]
+- You want the reusable-configuration and variable REST clients from an SDK: `client.voiceAgent` (JS), `client.voice_agent` (Python), `client.voiceAgent()` (Java), and the `AgentManage` client (.NET); Go ships them from 3.9.0 (`pkg/api/manage/v1/agents.go` and `agent-variables.go`), and Rust has none. [42]
 - You only need transcription with turn detection, or only synthesis: the SDK `conversational-stt`, `speech-to-text`, or `text-to-speech` skills.
 - You want to find a docs page: `docs` skill. You want the MCP server: `setup-mcp` skill.
 
@@ -206,10 +229,10 @@ The Voice Agent API is billed per minute of WebSocket connection time, and a Dee
 33. https://developers.deepgram.com/docs/voice-agent-speculative-replies and https://developers.deepgram.com/docs/voice-agent-function-call-cancelled
 34. https://developers.deepgram.com/docs/voice-agent-tts-controls (`speed` ranges per family, `expressivity` on Flux TTS only)
 35. https://developers.deepgram.com/docs/voice-agent-history
-36. https://developers.deepgram.com/docs/voice-agent-conversational-mode (invite-only Early Access; the page is not listed in llms.txt)
+36. https://developers.deepgram.com/docs/voice-agent-think-live (invite-only Early Access; `think_live` parameters and defaults, agent filler, `UpdateThink_Live`, `FrustrationDetected`, `conversational_behavior`; the page is not listed in llms.txt; the old `voice-agent-conversational-mode` URL redirects here)
 37. https://developers.deepgram.com/reference/regional-endpoints (`/v1/agent/converse` on the EU, AU, and IN hosts; Google `think.provider.version` values and the default per endpoint)
 38. https://developers.deepgram.com/docs/voice-agent-media-inputs-outputs (Flux TTS streams raw audio with no container or bit rate; compressed output and containers are Aura only)
 39. https://developers.deepgram.com/docs/voice-agent-conversation-context (`agent.context.messages` replay of earlier turns)
 40. https://developers.deepgram.com/docs/voice-agent-observability (no logging API; persist every non-audio frame keyed to `request_id`; `LatencyReport` fields)
 41. https://developers.deepgram.com/docs/voice-agent-settings, https://developers.deepgram.com/docs/voice-agent-inputs, and https://developers.deepgram.com/docs/voice-agent-outputs (the `Settings` message and the client and server message indexes)
-42. https://github.com/deepgram/deepgram-dotnet-sdk (`AgentManage` client, 7.1.1) for the agent configuration REST clients; Go carries them on `main` after 3.8.0 (repository in [30]); JS `client.voiceAgent`, Python `client.voice_agent`, Java `client.voiceAgent()`
+42. https://github.com/deepgram/deepgram-dotnet-sdk (`AgentManage` client, 7.1.1) for the agent configuration REST clients; Go from 3.9.0 (`pkg/api/manage/v1/agents.go`, repository in [30]); JS `client.voiceAgent`, Python `client.voice_agent`, Java `client.voiceAgent()`
