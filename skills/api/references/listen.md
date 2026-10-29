@@ -60,6 +60,7 @@ Transcribe audio and video using Deepgram's speech-to-text REST API
   To boost multiple separate keyterms, repeat the `keyterm` parameter (for example, `keyterm=term1&keyterm=term2`). To boost one multi-word phrase as a single keyterm, join the words with `%20` or `+` (for example, `keyterm=customer%20service`). Do not separate keyterms with commas, semicolons, or line breaks.
 - `keywords` string | string[] — Keywords can boost or suppress specialized terminology and brands. `keywords` is not supported with Nova-3 models; use `keyterm` instead.
 - `language` string (default: `en`) — The [BCP-47 language tag](https://tools.ietf.org/html/bcp47) that hints at the primary spoken language. Depending on the Model and API endpoint you choose only certain languages are available
+- `language_hint` string | string[] — Biases language detection toward one or more languages on Nova-3 multilingual (`model=nova-3&language=multi`); ignored with any other `language`. Repeat the parameter to pass several codes, for example `language_hint=en&language_hint=es`. A code that is not in the [Nova-3 multilingual list](/docs/models-languages-overview#nova-3) fails the request with HTTP 400. See [Nova-3 Language Prompting](/docs/nova-3-language-prompting).
 - `measurements` boolean (default: `false`) — Spoken measurements will be converted to their corresponding abbreviations
 - `model` `nova-3` | `nova-3-general` | `nova-3-medical` | `nova-2` | `nova-2-general` | `nova-2-meeting` | `nova-2-finance` | `nova-2-conversationalai` | `nova-2-voicemail` | `nova-2-video` | `nova-2-medical` | `nova-2-drivethru` | `nova-2-automotive` | `nova` | `nova-general` | `nova-phonecall` | `nova-medical` | `enhanced` | `enhanced-general` | `enhanced-meeting` | `enhanced-phonecall` | `enhanced-finance` | `base` | `meeting` | `phonecall` | `finance` | `conversationalai` | `voicemail` | `video` | string (default: `base-general`) — AI model used to process submitted audio
 - `multichannel` boolean (default: `false`) — Transcribe each audio channel independently
@@ -114,6 +115,7 @@ Transcribe audio and video using Deepgram's speech-to-text WebSocket
   To boost multiple separate keyterms, repeat the `keyterm` parameter (for example, `keyterm=term1&keyterm=term2`). To boost one multi-word phrase as a single keyterm, join the words with `%20` or `+` (for example, `keyterm=customer%20service`). Do not separate keyterms with commas, semicolons, or line breaks.
 - `keywords` string | string[] — Keywords can boost or suppress specialized terminology and brands. `keywords` is not supported with Nova-3 models; use `keyterm` instead.
 - `language` string (default: `en`) — The [BCP-47 language tag](https://tools.ietf.org/html/bcp47) that hints at the primary spoken language. Depending on the Model and API endpoint you choose only certain languages are available
+- `language_hint` string | string[] — Biases language detection toward one or more languages on Nova-3 multilingual (`model=nova-3&language=multi`); ignored with any other `language`. Repeat the parameter to pass several codes, for example `language_hint=en&language_hint=es`. A code that is not in the [Nova-3 multilingual list](/docs/models-languages-overview#nova-3) rejects the WebSocket connection with HTTP 400. See [Nova-3 Language Prompting](/docs/nova-3-language-prompting).
 - `mip_opt_out` boolean (default: `false`) — Opts out requests from the Deepgram Model Improvement Program. Refer to our Docs for pricing impacts before setting this to true. https://dpgr.am/deepgram-mip
 - `model` `nova-3` | `nova-3-general` | `nova-3-medical` | `nova-2` | `nova-2-general` | `nova-2-meeting` | `nova-2-finance` | `nova-2-conversationalai` | `nova-2-voicemail` | `nova-2-video` | `nova-2-medical` | `nova-2-drivethru` | `nova-2-automotive` | `nova` | `nova-general` | `nova-phonecall` | `nova-medical` | `enhanced` | `enhanced-general` | `enhanced-meeting` | `enhanced-phonecall` | `enhanced-finance` | `base` | `meeting` | `phonecall` | `finance` | `conversationalai` | `voicemail` | `video` | `custom` — AI model to use for the transcription
 - `multichannel` `true` | `false` (default: `false`) — Transcribe each audio channel independently
@@ -146,7 +148,40 @@ Transcribe audio and video using Deepgram's speech-to-text WebSocket
 
   - `type` `Finalize` | `CloseStream` | `KeepAlive` **(required)** — Message type identifier
 
+**ListenV1Configure** — Send a Configure message to update keyterms or formatting features mid-stream
+
+  - `type` `Configure` **(required)** — Message type identifier
+  - `keyterms` string[] — Replaces the stream's keyterms. Compatible with all Nova-3 models, monolingual and multilingual; on other
+    models the server returns a `ConfigureFailure` with code `CONFIGURE_KEYTERMS_NOT_SUPPORTED`. Each array
+    replaces the entire list, including keyterms set with the `keyterm` query parameter. Send an empty array to
+    clear all keyterms. Omit the field, or set it to `null`, to keep the current keyterms.
+
+    Each entry is a plain term or phrase with no weights or intensifiers. The 500-token keyterm limit that
+    applies to the `keyterm` query parameter also applies to each update. An over-limit update returns a
+    `ConfigureFailure` with code `CONFIGURE_KEYTERM_LIMIT_EXCEEDED`.
+  - `features` object — Turns formatting features on or off. Each key is a feature name and each value is a boolean, for
+    example `{"numerals": true}`.
+
 #### Server → Client Messages
+
+**ListenV1ConfigureSuccess** — Receive confirmation that a Configure message was applied
+
+  - `type` `ConfigureSuccess` **(required)** — Message type identifier
+  - `request_id` string **(required)** — The unique identifier of the request
+  - `keyterms` string[] — The keyterms now in effect. Present only when the `Configure` replaced them.
+
+**ListenV1ConfigureFailure** — Receive notice that a Configure message was rejected; the stream keeps its previous configuration
+
+  - `type` `ConfigureFailure` **(required)** — Message type identifier
+  - `request_id` string **(required)** — The unique identifier of the request
+  - `code` `CONFIGURE_KEYTERMS_NOT_SUPPORTED` | `CONFIGURE_KEYTERM_LIMIT_EXCEEDED` | `CONFIGURE_ALREADY_PENDING` | `CONFIGURE_INTERNAL_ERROR` **(required)** — Identifies why the `Configure` was rejected.
+
+    - `CONFIGURE_KEYTERMS_NOT_SUPPORTED`: the stream's model does not support mid-stream keyterm updates. Only
+      Nova-3 models do.
+    - `CONFIGURE_KEYTERM_LIMIT_EXCEEDED`: the keyterms exceed the 500-token keyterm limit.
+    - `CONFIGURE_ALREADY_PENDING`: another `Configure` is still awaiting its response.
+    - `CONFIGURE_INTERNAL_ERROR`: the server failed to apply the configuration.
+  - `description` string **(required)** — A human-readable explanation of the rejection
 
 **ListenV1Results** — Receive transcription results
 
@@ -156,7 +191,7 @@ Transcribe audio and video using Deepgram's speech-to-text WebSocket
   - `start` number **(required)** — The start time of the transcription
   - `is_final` boolean — Whether the transcription is final
   - `speech_final` boolean — Whether the transcription is speech final
-  - `channel` { alternatives: { transcript: string, confidence: number, languages: string[], words: object[] }[] } **(required)**
+  - `channel` { alternatives: { transcript: string, confidence: number, languages: string[], languages_hinted: string[], words: object[] }[] } **(required)**
   - `metadata` { request_id: string, model_info: { name: string, version: string, arch: string }, model_uuid: string, diarize_info: { model_uuid: string, arch: string } } **(required)**
   - `from_finalize` boolean — Whether the transcription is from a finalize message
   - `entities` { label: string, value: string, raw_value: string, confidence: number, start_word: integer, end_word: integer }[] — Extracted entities from the audio when detect_entities is enabled. Only present in is_final messages. Returns an empty array if no entities are detected
@@ -182,6 +217,15 @@ Transcribe audio and video using Deepgram's speech-to-text WebSocket
   - `type` `SpeechStarted` **(required)** — Message type identifier
   - `channel` integer[] **(required)** — The channel
   - `timestamp` number **(required)** — The timestamp
+
+**ListenV1Error** — Receive a non-fatal error message, such as for an unparseable text message. Fatal failures close the socket instead.
+
+  - `type` `Error` **(required)** — Message type identifier for error responses
+  - `variant` string **(required)** — The error category. `SchemaError` means the server could not parse a client text message.
+  - `description` string **(required)** — A human-readable description of what went wrong
+  - `code` string — Deprecated. Present only on legacy error frames; use `ConfigureFailure.code` for `Configure`
+    rejections.
+  - `message` string — For `SchemaError`, the original client message that could not be parsed
 
 ### WebSocket `/v2/listen`
 > Server: `wss://api.deepgram.com`
