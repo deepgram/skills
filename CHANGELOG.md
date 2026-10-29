@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+[Unreleased]: https://github.com/deepgram/skills/compare/deepgram-skills-v2.0.0...HEAD
+
+## [2.0.0] - 2026-10-29
+
+October correctness release. The headline items are Voice Agent Think Live (formerly Conversational Mode), Flux TTS in 41 languages besides English, Nova-3 mid-stream `Configure` and `language_hint`, and the CLI skill tracking `deepctl` 0.4.0. The `api` references are regenerated from the live specs. No skill is added or removed, so the `deepgram` plugin still lists 14 skills.
+
+```bash
+npx skills add deepgram/skills
+```
+
 ### Changed
 
 - API skill: regenerated `references/agent.md`, `references/listen.md`, and `references/speak.md` from the live specs (spec-drift #22). Voice Agent gains Think Live: the `agent.think_live` settings block, `UpdateThink_Live` and `ThinkLiveUpdated`, `FrustrationDetected`, the dynamic `InjectAgentMessage` (`is_dynamic: true`), the function filler fields `initial_agent_filler`, `agent_filler_max_count`, and `agent_filler_interval_ms`, and the always-sent `ConversationText.conversational_behavior`. `/v1/listen` gains `language_hint` for Nova-3 multilingual on both transports, the mid-stream `Configure` message with `ConfigureSuccess` and `ConfigureFailure` (four codes), the non-fatal `Error` message, and `languages_hinted` on streaming results. `/v2/speak` drops "English-only at launch" from `model`, and `text` now lists the ten languages that get text normalization; the others are Early Access without it
@@ -17,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Setup-mcp skill: deepctl 0.4.0 and the tap's 0.3.3, plus the 0.4.0 re-login step for Path A
 - API, docs, and starters skills: drop "English at launch" for Flux TTS; `language_hint` now applies to Nova-3 multilingual as well as Flux STT
 
-[Unreleased]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.7.0...HEAD
+[2.0.0]: https://github.com/deepgram/skills/compare/deepgram-skills-v1.7.0...deepgram-skills-v2.0.0
 
 ## [1.7.0] - 2026-10-02
 
